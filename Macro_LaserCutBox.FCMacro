@@ -1,0 +1,39 @@
+__title__ = "laser cut box"
+__author__ = "Greg Harley"
+__version__ = "01.00"
+__date__ = "12/31/20"
+
+__Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
+
+import sys
+from FreeCAD import Gui
+import os
+import string
+
+App = FreeCAD
+
+
+class Box:
+    def __init__(self):
+        if not App.ActiveDocument:
+            App.newDocument()
+
+        # self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
+        # self.init_sheet()
+
+        self.dialog = None
+        self.init_dialog()
+
+        self.dialog.show()
+        self.dialog.exec_()
+
+    def init_dialog(self):
+        self.dialog = Gui.PySideUic.loadUi("C:/Users/gharley/AppData/Roaming/FreeCAD/Macro/Macro_LaserCutBox.ui")
+        self.dialog.setWindowTitle("Laser cut box")
+
+    def init_sheet(self):
+        self.worksheet.setColumnWidth('A', 150)
+        set = self.worksheet.set
+
+
+Box()
