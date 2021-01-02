@@ -6,6 +6,7 @@ __date__ = "12/31/20"
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
 import sys
+from PySide import QtCore, QtGui
 from FreeCAD import Gui
 import os
 import string
@@ -18,10 +19,9 @@ class Box:
         if not App.ActiveDocument:
             App.newDocument()
 
-        # self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
-        # self.init_sheet()
-
         self.dialog = None
+        self.worksheet = None
+
         self.init_dialog()
 
         self.dialog.show()
@@ -31,9 +31,26 @@ class Box:
         self.dialog = Gui.PySideUic.loadUi("C:/Users/gharley/AppData/Roaming/FreeCAD/Macro/Macro_LaserCutBox.ui")
         self.dialog.setWindowTitle("Laser cut box")
 
+        QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.init_sheet)
+
     def init_sheet(self):
-        self.worksheet.setColumnWidth('A', 150)
-        set = self.worksheet.set
+        # App.Console.PrintMessage(dir(self.dialog))
+        for obj in self.dialog.findChildren(QtGui.QLabel):
+            label = obj.text()
+            alias = obj.buddy()
+            if alias is None:
+                App.Console.PrintMessage(label + '\n')
+                continue
+            if isinstance(alias, QtGui.QComboBox):
+                App.Console.PrintMessage(alias.objectName() + '\n')
+                continue
+            value = alias.text()
+            App.Console.PrintMessage(label + ' ')
+            App.Console.PrintMessage(alias.objectName() + ' ')
+            App.Console.PrintMessage(value + '\n')
+
+        # self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
+        # self.worksheet.setColumnWidth('A', 150)
 
 
 Box()
