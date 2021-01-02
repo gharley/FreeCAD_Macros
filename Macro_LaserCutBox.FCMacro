@@ -21,6 +21,7 @@ class Box:
 
         self.dialog = None
         self.worksheet = None
+        self.box_type = 0
 
         self.init_dialog()
 
@@ -34,23 +35,30 @@ class Box:
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.init_sheet)
 
     def init_sheet(self):
-        # App.Console.PrintMessage(dir(self.dialog))
-        for obj in self.dialog.findChildren(QtGui.QLabel):
-            label = obj.text()
-            alias = obj.buddy()
-            if alias is None:
-                App.Console.PrintMessage(label + '\n')
-                continue
-            if isinstance(alias, QtGui.QComboBox):
-                App.Console.PrintMessage(alias.objectName() + '\n')
-                continue
-            value = alias.text()
-            App.Console.PrintMessage(label + ' ')
-            App.Console.PrintMessage(alias.objectName() + ' ')
-            App.Console.PrintMessage(value + '\n')
+        self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
+        set_cell = self.worksheet.set
+        self.worksheet.setColumnWidth('A', 150)
 
-        # self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
-        # self.worksheet.setColumnWidth('A', 150)
+        index = 0
+        for obj in self.dialog.findChildren(QtGui.QLabel):
+            index += 1
+            column_a = 'A' + str(index)
+            column_b = 'B' + str(index)
+
+            alias = obj.buddy()
+            if not (alias is None):
+                if isinstance(alias, QtGui.QComboBox):
+                    self.box_type = alias.currentIndex
+                    index -= 1
+                else:
+                    set_cell(column_a, obj.text())
+                    set_cell(column_b, alias.text())
+                    self.worksheet.setAlias(column_b, alias.objectName())
+            else:
+                self.worksheet.setStyle(column_a, 'bold')
+                self.worksheet.setAlignment(column_a, 'center|vcenter')
+                self.worksheet.mergeCells(column_a + ':' + column_b)
+                set_cell(column_a, obj.text())
 
 
 Box()
