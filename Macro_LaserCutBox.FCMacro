@@ -33,7 +33,7 @@ class Box:
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.init_sheet)
 
     def init_sheet(self):
-        self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "")
+        self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "Parameters")
         set_cell = self.worksheet.set
         self.worksheet.setColumnWidth('A', 150)
 
@@ -64,16 +64,20 @@ class Box:
 
     def build_long_side(self):
         sheet = self.worksheet
+        sheet_name = App.ActiveDocument.ActiveObject.Name
+
         width = sheet.get(sheet.getCellFromAlias("width"))
         height = sheet.get(sheet.getCellFromAlias("height"))
 
-        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "")
+        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "Sketch")
         sketch.addGeometry(Part.LineSegment(App.Vector(0, 0, 0), App.Vector(width, 0, 0)), False)
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', 0, width))
+        cnum = sketch.addConstraint(Sketcher.Constraint('DistanceX', 0, width))
+        sketch.setExpression("Constraints[" + str(cnum) + "]", "<<" + sheet_name + ">>.width")
         sketch.addConstraint(Sketcher.Constraint('Horizontal', 0))
 
         sketch.addGeometry(Part.LineSegment(App.Vector(width, 0, 0), App.Vector(width, height, 0)), False)
-        sketch.addConstraint(Sketcher.Constraint('DistanceY', 1, height))
+        cnum = sketch.addConstraint(Sketcher.Constraint('DistanceY', 1, height))
+        sketch.setExpression("Constraints[" + str(cnum) + "]", "<<" + sheet_name + ">>.height")
         sketch.addConstraint(Sketcher.Constraint('Vertical', 1))
         sketch.addConstraint(Sketcher.Constraint('Coincident', 0, 2, 1, 1))
 
