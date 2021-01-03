@@ -39,13 +39,17 @@ class Box:
     def init_sheet(self):
         self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "Parameters")
         set_cell = self.worksheet.set
+
+        def column_a(idx): return 'A' + str(idx)
+        def column_b(idx): return 'B' + str(idx)
+
         self.worksheet.setColumnWidth('A', 150)
 
         index = 0
         for obj in self.dialog.findChildren(QtGui.QLabel):
             index += 1
-            column_a = 'A' + str(index)
-            column_b = 'B' + str(index)
+            col_a = column_a(index)
+            col_b = column_b(index)
 
             alias = obj.buddy()
             if not (alias is None):
@@ -53,32 +57,69 @@ class Box:
                     self.box_type = alias.currentIndex
                     index -= 1
                 else:
-                    set_cell(column_a, obj.text())
-                    set_cell(column_b, alias.text())
-                    self.worksheet.setAlias(column_b, alias.objectName())
+                    set_cell(col_a, obj.text())
+                    set_cell(col_b, alias.text())
+                    self.worksheet.setAlias(col_b, alias.objectName())
             else:
-                self.worksheet.setStyle(column_a, 'bold')
-                self.worksheet.setAlignment(column_a, 'center|vcenter')
-                self.worksheet.mergeCells(column_a + ':' + column_b)
-                set_cell(column_a, obj.text())
+                self.worksheet.setStyle(col_a, 'bold')
+                self.worksheet.setAlignment(col_a, 'center|vcenter')
+                self.worksheet.mergeCells(col_a + ':' + col_b)
+                set_cell(col_a, obj.text())
+
+        index += 1
+        col_a = column_a(index)
+        self.worksheet.setStyle(col_a, 'bold')
+        self.worksheet.setAlignment(col_a, 'center|vcenter')
+        self.worksheet.mergeCells(col_a + ':' + column_b(index))
+        set_cell(col_a, 'Calculated Values DO NOT EDIT')
+
+        def set_calc(index, label, alias, formula):
+            col_a = column_a(index)
+            col_b = column_b(index)
+            set_cell(col_a, label)
+            set_cell(col_b, formula)
+            self.worksheet.setAlias(col_b, alias)
+
+        index += 1
+        set_calc(index, 'Side tab gap', 'sideGap', '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
+
+        index += 1
+        set_calc(index, 'End tab gap', 'endGap', '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
+
+        index += 1
+        set_calc(index, 'Height tab gap', 'heightGap', '=(height - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)')
 
         App.ActiveDocument.recompute(None, True, True)
 
-        self.build_long_side()
+        self.build_side()
 
-    def build_long_side(self):
+    def build_side(self):
         sheet = self.worksheet
-        sheet_prefix = "<<" + App.ActiveDocument.ActiveObject.Name + ">>."
 
+        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "BoxSide")
         width = sheet.get(sheet.getCellFromAlias("width"))
         height = sheet.get(sheet.getCellFromAlias("height"))
 
+        top, right, bottom, left = self.draw_box(sketch, width, height)
+
+        # sketch.delGeometry(bottom)
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', top, START, bottom, START, ORIGIN, START))
+
+        App.ActiveDocument.recompute(None, True, True)
+        Gui.ActiveDocument.ActiveView.fitAll()
+
+    @staticmethod
+    def get_vectors(width, height):
         lower_left = App.Vector(0, 0, 0)
         upper_left = App.Vector(0, height, 0)
         lower_right = App.Vector(width, 0, 0)
         upper_right = App.Vector(width, height, 0)
 
-        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "Sketch")
+        return lower_left, upper_left, lower_right, upper_right
+
+    def draw_box(self, sketch, width, height):
+        sheet_prefix = "<<" + self.worksheet.Name + ">>."
+        lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
         top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
         right = sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)
@@ -101,11 +142,7 @@ class Box:
         sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
         sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
 
-        # sketch.delGeometry(bottom)
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', top, START, bottom, START, ORIGIN, START))
-
-        App.ActiveDocument.recompute(None, True, True)
-        Gui.ActiveDocument.ActiveView.fitAll()
+        return top, right, bottom, left
 
 
 Box()
