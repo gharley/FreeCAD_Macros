@@ -11,6 +11,10 @@ import Part, Sketcher
 
 App = FreeCAD
 
+START = 1
+END = 2
+ORIGIN = -1
+
 
 class Box:
     def __init__(self):
@@ -64,32 +68,41 @@ class Box:
 
     def build_long_side(self):
         sheet = self.worksheet
-        sheet_name = App.ActiveDocument.ActiveObject.Name
+        sheet_prefix = "<<" + App.ActiveDocument.ActiveObject.Name + ">>."
 
         width = sheet.get(sheet.getCellFromAlias("width"))
         height = sheet.get(sheet.getCellFromAlias("height"))
 
+        lower_left = App.Vector(0, 0, 0)
+        upper_left = App.Vector(0, height, 0)
+        lower_right = App.Vector(width, 0, 0)
+        upper_right = App.Vector(width, height, 0)
+
         sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "Sketch")
-        sketch.addGeometry(Part.LineSegment(App.Vector(0, 0, 0), App.Vector(width, 0, 0)), False)
-        cnum = sketch.addConstraint(Sketcher.Constraint('DistanceX', 0, width))
-        sketch.setExpression("Constraints[" + str(cnum) + "]", "<<" + sheet_name + ">>.width")
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', 0))
 
-        sketch.addGeometry(Part.LineSegment(App.Vector(width, 0, 0), App.Vector(width, height, 0)), False)
-        cnum = sketch.addConstraint(Sketcher.Constraint('DistanceY', 1, height))
-        sketch.setExpression("Constraints[" + str(cnum) + "]", "<<" + sheet_name + ">>.height")
-        sketch.addConstraint(Sketcher.Constraint('Vertical', 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 0, 2, 1, 1))
+        top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
+        right = sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)
+        bottom = sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)
+        left = sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
 
-        sketch.addGeometry(Part.LineSegment(App.Vector(width, height, 0), App.Vector(0, height, 0)), False)
-        sketch.addConstraint(Sketcher.Constraint('Equal', 0, 2))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 1, 2, 2, 1))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
+        sketch.setExpression("Constraints[" + str(constraint) + "]", sheet_prefix + "width")
 
-        sketch.addGeometry(Part.LineSegment(App.Vector(0, height, 0), App.Vector(0, 0, 0)), False)
-        sketch.addConstraint(Sketcher.Constraint('Equal', 1, 3))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 2, 2, 3, 1))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', 3, 2, 0, 1))
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', 0, 1, 2, 1, -1, 1))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
+        sketch.setExpression("Constraints[" + str(constraint) + "]", sheet_prefix + "height")
+
+        sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
+        sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
+        sketch.addConstraint(Sketcher.Constraint('Vertical', left))
+        sketch.addConstraint(Sketcher.Constraint('Vertical', right))
+
+        sketch.addConstraint(Sketcher.Constraint('Coincident', top, END, right, START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', right, END, bottom, START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
+
+        # sketch.delGeometry(bottom)
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', top, START, bottom, START, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
