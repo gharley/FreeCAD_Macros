@@ -5,11 +5,9 @@ __date__ = "12/31/20"
 
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
-import sys
 from PySide import QtCore, QtGui
 from FreeCAD import Gui
-import os
-import string
+import Part, Sketcher
 
 App = FreeCAD
 
@@ -59,6 +57,38 @@ class Box:
                 self.worksheet.setAlignment(column_a, 'center|vcenter')
                 self.worksheet.mergeCells(column_a + ':' + column_b)
                 set_cell(column_a, obj.text())
+
+        App.ActiveDocument.recompute(None, True, True)
+
+        self.build_long_side()
+
+    def build_long_side(self):
+        sheet = self.worksheet
+        width = sheet.get(sheet.getCellFromAlias("width"))
+        height = sheet.get(sheet.getCellFromAlias("height"))
+
+        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "")
+        sketch.addGeometry(Part.LineSegment(App.Vector(0, 0, 0), App.Vector(width, 0, 0)), False)
+        sketch.addConstraint(Sketcher.Constraint('DistanceX', 0, width))
+        sketch.addConstraint(Sketcher.Constraint('Horizontal', 0))
+
+        sketch.addGeometry(Part.LineSegment(App.Vector(width, 0, 0), App.Vector(width, height, 0)), False)
+        sketch.addConstraint(Sketcher.Constraint('DistanceY', 1, height))
+        sketch.addConstraint(Sketcher.Constraint('Vertical', 1))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', 0, 2, 1, 1))
+
+        sketch.addGeometry(Part.LineSegment(App.Vector(width, height, 0), App.Vector(0, height, 0)), False)
+        sketch.addConstraint(Sketcher.Constraint('Equal', 0, 2))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', 1, 2, 2, 1))
+
+        sketch.addGeometry(Part.LineSegment(App.Vector(0, height, 0), App.Vector(0, 0, 0)), False)
+        sketch.addConstraint(Sketcher.Constraint('Equal', 1, 3))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', 2, 2, 3, 1))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', 3, 2, 0, 1))
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', 0, 1, 2, 1, -1, 1))
+
+        App.ActiveDocument.recompute(None, True, True)
+        Gui.ActiveDocument.ActiveView.fitAll()
 
 
 Box()
