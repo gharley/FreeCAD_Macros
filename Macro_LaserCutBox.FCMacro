@@ -63,15 +63,15 @@ class Box:
             col_a = column_a(index)
             col_b = column_b(index)
 
-            alias = obj.buddy()
-            if not (alias is None):
-                if isinstance(alias, QtGui.QComboBox):
-                    self.box_type = alias.currentIndex
+            buddy = obj.buddy()
+            if not (buddy is None):
+                if isinstance(buddy, QtGui.QComboBox):
+                    self.box_type = buddy.currentIndex()
                     index -= 1
                 else:
                     set_cell(col_a, obj.text())
-                    set_cell(col_b, alias.text())
-                    self.worksheet.setAlias(col_b, alias.objectName())
+                    set_cell(col_b, buddy.text())
+                    self.worksheet.setAlias(col_b, buddy.objectName())
             else:
                 self.worksheet.setStyle(col_a, 'bold')
                 self.worksheet.setAlignment(col_a, 'center|vcenter')
@@ -110,39 +110,43 @@ class Box:
 
     def build_side(self):
         sheet = self.worksheet
-        sheet_prefix = '<<' + self.worksheet.Name + '>>.'
+        sheet_prefix = self.get_sheet_expression_prefix()
 
         sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', 'BoxSide')
         width = sheet.get(sheet.getCellFromAlias('width'))
         height = sheet.get(sheet.getCellFromAlias('height'))
-        tab_width = sheet.get(sheet.getCellFromAlias('tabWidth'))
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
         offset = sheet.get(sheet.getCellFromAlias('offsetH'))
-        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsLength')))
-        gap = sheet.get(sheet.getCellFromAlias('sideGap'))
 
-        box = self.draw_box(sketch, width, height + thickness * 2, '{0}width'.format(sheet_prefix), '{0}height + {1}thickness * 2'.format(sheet_prefix, sheet_prefix))
+        if self.box_type == 0:
+            thickness_multiplier = 3
+        elif self.box_type == 1:
+            thickness_multiplier = 2
+        else:
+            thickness_multiplier = 1
+
+        box = self.draw_box(sketch, width, height + thickness * thickness_multiplier, '{0}width'.format(sheet_prefix), '{0}height + {1}thickness * {2}'.format(sheet_prefix, sheet_prefix, thickness_multiplier))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
 
-        tabs = self.draw_tabs(sketch, num_tabs, tab_width, thickness, gap, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, '{0}'))
-        tab = tabs[0]
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+        if self.box_type != 2:
+            tab = self.draw_side_tabs(sketch)[0]
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
-        tabs = self.draw_tabs(sketch, num_tabs, tab_width, thickness, gap, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, '{0}'))
-        tab = tabs[0]
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+        if self.box_type != 1:
+            tab = self.draw_side_tabs(sketch)[0]
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-        constraint = sketch.addConstraint(
-            Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[TOP], START, thickness))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
+            constraint = sketch.addConstraint(
+                Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[TOP], START, thickness))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
-        App.ActiveDocument.recompute(None, True, True)
-        Gui.ActiveDocument.ActiveView.fitAll()
+            App.ActiveDocument.recompute(None, True, True)
+            Gui.ActiveDocument.ActiveView.fitAll()
 
     def draw_box(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
@@ -170,7 +174,7 @@ class Box:
 
         return [top, right, bottom, left]
 
-    def draw_tabs(self, sketch, num_tabs, tab_width, thickness, gap, expression_width, expression_thickness, expression_gap):
+    def _draw_tabs(self, sketch, num_tabs, tab_width, thickness, gap, expression_width, expression_thickness, expression_gap):
         tabs = []
         for idx in range(0, num_tabs):
             tab = self.draw_box(sketch, tab_width, thickness, expression_width, expression_thickness)
@@ -185,6 +189,34 @@ class Box:
                 sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
 
         return tabs
+
+    def draw_tabs(self, sketch, num_tabs, gap_alias):
+        sheet = self.worksheet
+        sheet_prefix = self.get_sheet_expression_prefix()
+
+        tab_width = sheet.get(sheet.getCellFromAlias('tabWidth'))
+        thickness = sheet.get(sheet.getCellFromAlias('thickness'))
+        gap = sheet.get(sheet.getCellFromAlias(gap_alias))
+
+        return self._draw_tabs(sketch, num_tabs, tab_width, thickness, gap,
+                               '{0}tabWidth'.format(sheet_prefix),
+                               '{0}thickness'.format(sheet_prefix),
+                               '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
+
+    def draw_end_tabs(self, sketch):
+        sheet = self.worksheet
+        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsDepth')))
+
+        return self.draw_tabs(sketch, num_tabs, "endGap")
+
+    def draw_side_tabs(self, sketch):
+        sheet = self.worksheet
+        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsLength')))
+
+        return self.draw_tabs(sketch, num_tabs, "sideGap")
+
+    def get_sheet_expression_prefix(self):
+        return '<<' + self.worksheet.Name + '>>.'
 
     @staticmethod
     def get_vectors(width, height):
