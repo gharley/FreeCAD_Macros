@@ -122,32 +122,29 @@ class Box:
         gap = sheet.get(sheet.getCellFromAlias('sideGap'))
 
         box = self.draw_box(sketch, width, height + thickness * 2, '{0}width'.format(sheet_prefix), '{0}height + {1}thickness * 2'.format(sheet_prefix, sheet_prefix))
-        # sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
 
-        for idx in range(0, num_tabs):
-            tab = self.draw_box(sketch, tab_width, thickness, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix))
-            if idx == 0:
-                first = tab
+        tabs = self.draw_tabs(sketch, num_tabs, tab_width, thickness, gap, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, '{0}'))
+        tab = tabs[0]
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
-            else:
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, idx))
+        tabs = self.draw_tabs(sketch, num_tabs, tab_width, thickness, gap, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, '{0}'))
+        tab = tabs[0]
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
-
-        # sketch.addCopy([tab_top, tab_right, tab_bottom, tab_left], App.Vector(gap, 0, 0))
-
-        # sketch.delGeometry(bottom)
+        constraint = sketch.addConstraint(
+            Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[TOP], START, thickness))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
 
-    def draw_box(self, sketch, width, height, alias_h, alias_v):
+    def draw_box(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
         top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
@@ -166,12 +163,28 @@ class Box:
         sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
-        sketch.setExpression("Constraints[" + str(constraint) + "]", alias_h)
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_h)
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
-        sketch.setExpression("Constraints[" + str(constraint) + "]", alias_v)
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_v)
 
         return [top, right, bottom, left]
+
+    def draw_tabs(self, sketch, num_tabs, tab_width, thickness, gap, expression_width, expression_thickness, expression_gap):
+        tabs = []
+        for idx in range(0, num_tabs):
+            tab = self.draw_box(sketch, tab_width, thickness, expression_width, expression_thickness)
+            tabs.append(tab)
+
+            if idx == 0:
+                first = tab
+            else:
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_gap.format(idx))
+
+                sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
+
+        return tabs
 
     @staticmethod
     def get_vectors(width, height):
