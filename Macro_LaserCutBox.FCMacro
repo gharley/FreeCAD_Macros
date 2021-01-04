@@ -5,15 +5,24 @@ __date__ = "12/31/20"
 
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
+from math import floor
+
 from PySide import QtCore, QtGui
 from FreeCAD import Gui
 import Part, Sketcher
 
 App = FreeCAD
 
+# Indexes for geoid
 START = 1
 END = 2
 ORIGIN = -1
+
+# Indexes for box sides
+TOP = 0
+RIGHT = 1
+BOTTOM = 2
+LEFT = 3
 
 
 class Box:
@@ -40,8 +49,11 @@ class Box:
         self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "Parameters")
         set_cell = self.worksheet.set
 
-        def column_a(idx): return 'A' + str(idx)
-        def column_b(idx): return 'B' + str(idx)
+        def column_a(idx):
+            return 'A' + str(idx)
+
+        def column_b(idx):
+            return 'B' + str(idx)
 
         self.worksheet.setColumnWidth('A', 150)
 
@@ -81,13 +93,16 @@ class Box:
             self.worksheet.setAlias(col_b, alias)
 
         index += 1
-        set_calc(index, 'Side tab gap', 'sideGap', '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
+        set_calc(index, 'Side tab gap', 'sideGap',
+                 '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
 
         index += 1
-        set_calc(index, 'End tab gap', 'endGap', '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
+        set_calc(index, 'End tab gap', 'endGap',
+                 '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
 
         index += 1
-        set_calc(index, 'Height tab gap', 'heightGap', '=(height - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)')
+        set_calc(index, 'Height tab gap', 'heightGap',
+                 '=(height - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)')
 
         App.ActiveDocument.recompute(None, True, True)
 
@@ -95,42 +110,50 @@ class Box:
 
     def build_side(self):
         sheet = self.worksheet
+        sheet_prefix = '<<' + self.worksheet.Name + '>>.'
 
-        sketch = App.ActiveDocument.addObject("Sketcher::SketchObject", "BoxSide")
-        width = sheet.get(sheet.getCellFromAlias("width"))
-        height = sheet.get(sheet.getCellFromAlias("height"))
+        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', 'BoxSide')
+        width = sheet.get(sheet.getCellFromAlias('width'))
+        height = sheet.get(sheet.getCellFromAlias('height'))
+        tab_width = sheet.get(sheet.getCellFromAlias('tabWidth'))
+        thickness = sheet.get(sheet.getCellFromAlias('thickness'))
+        offset = sheet.get(sheet.getCellFromAlias('offsetH'))
+        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsLength')))
+        gap = sheet.get(sheet.getCellFromAlias('sideGap'))
 
-        top, right, bottom, left = self.draw_box(sketch, width, height)
+        box = self.draw_box(sketch, width, height + thickness * 2, '{0}width'.format(sheet_prefix), '{0}height + {1}thickness * 2'.format(sheet_prefix, sheet_prefix))
+        # sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
+
+        for idx in range(0, num_tabs):
+            tab = self.draw_box(sketch, tab_width, thickness, '{0}tabWidth'.format(sheet_prefix), '{0}thickness'.format(sheet_prefix))
+            if idx == 0:
+                first = tab
+
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
+            else:
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}sideGap * {1} + {0}tabWidth * ({1} - 1)'.format(sheet_prefix, idx))
+
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
+
+        # sketch.addCopy([tab_top, tab_right, tab_bottom, tab_left], App.Vector(gap, 0, 0))
 
         # sketch.delGeometry(bottom)
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', top, START, bottom, START, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
 
-    @staticmethod
-    def get_vectors(width, height):
-        lower_left = App.Vector(0, 0, 0)
-        upper_left = App.Vector(0, height, 0)
-        lower_right = App.Vector(width, 0, 0)
-        upper_right = App.Vector(width, height, 0)
-
-        return lower_left, upper_left, lower_right, upper_right
-
-    def draw_box(self, sketch, width, height):
-        sheet_prefix = "<<" + self.worksheet.Name + ">>."
+    def draw_box(self, sketch, width, height, alias_h, alias_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
         top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
         right = sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)
         bottom = sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)
         left = sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
-        sketch.setExpression("Constraints[" + str(constraint) + "]", sheet_prefix + "width")
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
-        sketch.setExpression("Constraints[" + str(constraint) + "]", sheet_prefix + "height")
 
         sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
         sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
@@ -142,7 +165,22 @@ class Box:
         sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
         sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
 
-        return top, right, bottom, left
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
+        sketch.setExpression("Constraints[" + str(constraint) + "]", alias_h)
+
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
+        sketch.setExpression("Constraints[" + str(constraint) + "]", alias_v)
+
+        return [top, right, bottom, left]
+
+    @staticmethod
+    def get_vectors(width, height):
+        lower_left = App.Vector(0, 0, 0)
+        upper_left = App.Vector(0, height, 0)
+        lower_right = App.Vector(width, 0, 0)
+        upper_right = App.Vector(width, height, 0)
+
+        return lower_left, upper_left, lower_right, upper_right
 
 
 Box()
