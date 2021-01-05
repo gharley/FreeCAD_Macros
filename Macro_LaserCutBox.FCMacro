@@ -106,17 +106,18 @@ class Box:
 
         App.ActiveDocument.recompute(None, True, True)
 
-        self.build_side()
+        self.build_long_side()
+        self.build_short_side()
 
-    def build_side(self):
+    def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, tab_func):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
-        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', 'BoxSide')
-        width = sheet.get(sheet.getCellFromAlias('width'))
-        height = sheet.get(sheet.getCellFromAlias('height'))
+        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name)
+        width = sheet.get(sheet.getCellFromAlias(width_alias))
+        height = sheet.get(sheet.getCellFromAlias(height_alias))
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
-        offset = sheet.get(sheet.getCellFromAlias('offsetH'))
+        offset = sheet.get(sheet.getCellFromAlias(offset_alias))
 
         if self.box_type == 0:
             thickness_multiplier = 3
@@ -125,28 +126,36 @@ class Box:
         else:
             thickness_multiplier = 1
 
-        box = self.draw_box(sketch, width, height + thickness * thickness_multiplier, '{0}width'.format(sheet_prefix), '{0}height + {1}thickness * {2}'.format(sheet_prefix, sheet_prefix, thickness_multiplier))
+        box = self.draw_box(sketch, width, height + thickness * thickness_multiplier,
+                            '{0}{1}'.format(sheet_prefix, width_alias),
+                            '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
 
         if self.box_type != 2:
-            tab = self.draw_side_tabs(sketch)[0]
+            tab = tab_func(sketch)[0]
+
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, offset_alias))
 
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
         if self.box_type != 1:
-            tab = self.draw_side_tabs(sketch)[0]
+            tab = tab_func(sketch)[0]
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-            constraint = sketch.addConstraint(
-                Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[TOP], START, thickness))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
+            sketch.addConstraint(
+                Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[BOTTOM], START, 0))
 
             App.ActiveDocument.recompute(None, True, True)
             Gui.ActiveDocument.ActiveView.fitAll()
+
+    def build_long_side(self):
+        self._build_side("BoxSide", "width", "height", "offsetH", self.draw_side_tabs)
+
+    def build_short_side(self):
+        self._build_side("BoxEnd", "depth", "height", "offsetH", self.draw_end_tabs)
 
     def draw_box(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
