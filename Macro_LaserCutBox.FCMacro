@@ -9,7 +9,7 @@ from math import floor
 
 from PySide import QtCore, QtGui
 from FreeCAD import Gui
-import Part, Sketcher
+import Part, PartDesign, Sketcher
 
 App = FreeCAD
 
@@ -17,6 +17,11 @@ App = FreeCAD
 START = 1
 END = 2
 ORIGIN = -1
+
+# Indexes for planes
+XY_PLANE = 3
+XZ_PLANE = XY_PLANE + 1
+YZ_PLANE = XZ_PLANE + 1
 
 # Indexes for box sides
 TOP = 0
@@ -109,11 +114,18 @@ class Box:
         self.build_long_side()
         self.build_short_side()
 
-    def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, tab_func):
+    def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, plane_index, tab_func):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
-        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name)
+        body = App.ActiveDocument.addObject('PartDesign::Body', sketch_name)
+        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name + "Sketch")
+        body.addObject(sketch)
+
+        # This looks good but screws up DXF export
+        # sketch.Support = body.Origin.OriginFeatures[plane_index]
+        # sketch.MapMode = 'FlatFace'
+
         width = sheet.get(sheet.getCellFromAlias(width_alias))
         height = sheet.get(sheet.getCellFromAlias(height_alias))
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
@@ -126,8 +138,8 @@ class Box:
         else:
             thickness_multiplier = 1
 
-        box = self.draw_box(sketch, width, height + thickness * thickness_multiplier,
-                            '{0}{1}'.format(sheet_prefix, width_alias),
+        box = self.draw_box(sketch, width * 2, height + thickness * thickness_multiplier,
+                            '{0}{1} + {0}thickness * 2'.format(sheet_prefix, width_alias),
                             '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
 
@@ -152,10 +164,10 @@ class Box:
             Gui.ActiveDocument.ActiveView.fitAll()
 
     def build_long_side(self):
-        self._build_side("BoxSide", "width", "height", "offsetH", self.draw_side_tabs)
+        self._build_side("BoxSide", "width", "height", "offsetH", XZ_PLANE, self.draw_side_tabs)
 
     def build_short_side(self):
-        self._build_side("BoxEnd", "depth", "height", "offsetH", self.draw_end_tabs)
+        self._build_side("BoxEnd", "depth", "height", "offsetH", YZ_PLANE, self.draw_end_tabs)
 
     def draw_box(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
