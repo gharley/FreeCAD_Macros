@@ -153,17 +153,13 @@ class Box:
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
         if self.box_type != 1:
-            tab = tab_func(sketch)[0]
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+            lines = self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap', False)
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT], START, lines[0], START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT], END, lines[len(lines)-1], END))
+            sketch.delGeometry(box[BOTTOM])
 
-            sketch.addConstraint(
-                Sketcher.Constraint('DistanceY', box[BOTTOM], START, tab[BOTTOM], START, 0))
-
-            App.ActiveDocument.recompute(None, True, True)
-            Gui.ActiveDocument.ActiveView.fitAll()
-
-        self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap')
+        App.ActiveDocument.recompute(None, True, True)
+        Gui.ActiveDocument.ActiveView.fitAll()
 
     def build_long_side(self):
         self._build_side("BoxSide", "width", "height", "offsetH", XZ_PLANE, self.draw_side_tabs)
@@ -226,7 +222,7 @@ class Box:
                                '{0}thickness'.format(sheet_prefix),
                                '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
 
-    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias):
+    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=False):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -238,77 +234,83 @@ class Box:
 
         lines = []
 
-        start = App.Vector(0, 0)
-
         offset_length = App.Vector(offset, 0)
         horizontal_length = App.Vector(width, 0)
-        vertical_length = App.Vector(0, thickness)
+        horizontal_line_index = -1
+        if is_inset:
+            vertical_length = App.Vector(0, thickness)
+        else:
+            vertical_length = App.Vector(0, -thickness)
+
         gap_length = App.Vector(gap, 0)
 
-        prev_index = -1
+        start = App.Vector(0, 0)
+        gap_line_index = -1
+        offset_line_index = -1
+        vertical_line_index = -1
+        line_index = -1
+
+        def add_line(start_point, end_offset, previous, is_horizontal=False, is_vertical=False):
+            new_line = Part.LineSegment(start_point, start_point + end_offset)
+            index = sketch.addGeometry(new_line, False)
+
+            if previous != -1:
+                sketch.addConstraint(Sketcher.Constraint('Coincident', previous, END, index, START))
+            if is_horizontal:
+                sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
+            elif is_vertical:
+                sketch.addConstraint(Sketcher.Constraint('Vertical', index))
+
+            lines.append(index)
+
+            return new_line.EndPoint, index, new_line
+
         for idx in range(0, num_tabs):
-            # def add_line(source_line):
-            #     new_line = Part.LineSegment(source_line)
-            #     new_line.EndPoint = new_line.EndPoint + horizontal_offset
-            #     new_line.StartPoint = new_line.StartPoint + horizontal_offset
-            #     App.Console.PrintMessage(new_line)
-            #
-            #     return new_line
-
             if idx == 0:
-                line = Part.LineSegment(start, offset_length)
-                line_index = sketch.addGeometry(line, False)
+                start, line_index, line = add_line(start, offset_length, line_index, True)
+
+                if offset_line_index == -1:
+                    offset_line_index = line_index
+                    constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', offset_line_index, offset))
+                    sketch.setExpression('Constraints[{0}]'.format(str(constraint)), "{0}{1}".format(sheet_prefix, offset_alias))
             else:
-                line = Part.LineSegment(start, start + gap_length)
-                line_index = sketch.addGeometry(line, False)
+                start, line_index, line = add_line(start, gap_length, line_index, True)
 
-            sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
+                if gap_line_index == -1:
+                    gap_line_index = line_index
+                    constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', gap_line_index, gap))
+                    sketch.setExpression('Constraints[{0}]'.format(str(constraint)), '{0}{1}'.format(sheet_prefix, gap_alias))
+                else:
+                    sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
-            if prev_index != -1:
-                sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
-
-            lines.append(line_index)
-            prev_index = line_index
-            start = line.EndPoint
-
-            line = Part.LineSegment(start, start + vertical_length)
-            line_index = sketch.addGeometry(line, False)
-            sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
-            lines.append(line_index)
-            prev_index = line_index
-            start = line.EndPoint
+            start, line_index, line = add_line(start, vertical_length, line_index, False, True)
 
             if idx == 0:
                 vertical_line_index = line_index
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', vertical_line_index, thickness))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), "{0}thickness".format(sheet_prefix))
+                value = thickness
+                expression = '{0}thickness'.format(sheet_prefix)
+                if not is_inset:
+                    value = -value
+                    expression = '-' + expression
 
-            line = Part.LineSegment(start, start + horizontal_length)
-            line_index = sketch.addGeometry(line, False)
-            sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
-            lines.append(line_index)
-            prev_index = line_index
-            start = line.EndPoint
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', vertical_line_index, value))
+                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), expression)
+            else:
+                sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
+
+            start, line_index, line = add_line(start, horizontal_length, line_index, True)
 
             if idx == 0:
                 horizontal_line_index = line_index
                 constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', horizontal_line_index, width))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), "{0}{1}".format(sheet_prefix, width_alias))
+                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), '{0}{1}'.format(sheet_prefix, width_alias))
+            else:
+                sketch.addConstraint(Sketcher.Constraint('Equal', horizontal_line_index, line_index))
 
-            line = Part.LineSegment(start, start - vertical_length)
-            line_index = sketch.addGeometry(line, False)
-            sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
-            lines.append(line_index)
-            prev_index = line_index
-            start = line.EndPoint
+            start, line_index, line = add_line(start, -vertical_length, line_index, False, True)
+            sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
 
-        line = Part.LineSegment(start, start + offset_length)
-        line_index = sketch.addGeometry(line, False)
-        sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
-        lines.append(line_index)
+        add_line(start, offset_length, line_index, True)
 
         return lines
 
