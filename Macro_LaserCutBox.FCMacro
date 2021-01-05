@@ -112,7 +112,7 @@ class Box:
         App.ActiveDocument.recompute(None, True, True)
 
         self.build_long_side()
-        self.build_short_side()
+        # self.build_short_side()
 
     def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, plane_index, tab_func):
         sheet = self.worksheet
@@ -162,6 +162,8 @@ class Box:
 
             App.ActiveDocument.recompute(None, True, True)
             Gui.ActiveDocument.ActiveView.fitAll()
+
+        self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap')
 
     def build_long_side(self):
         self._build_side("BoxSide", "width", "height", "offsetH", XZ_PLANE, self.draw_side_tabs)
@@ -224,6 +226,92 @@ class Box:
                                '{0}thickness'.format(sheet_prefix),
                                '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
 
+    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias):
+        sheet = self.worksheet
+        sheet_prefix = self.get_sheet_expression_prefix()
+
+        num_tabs = sheet.get(sheet.getCellFromAlias(num_tabs_alias))
+        width = sheet.get(sheet.getCellFromAlias(width_alias))
+        offset = sheet.get(sheet.getCellFromAlias(offset_alias))
+        gap = sheet.get(sheet.getCellFromAlias(gap_alias))
+        thickness = sheet.get(sheet.getCellFromAlias('thickness'))
+
+        lines = []
+
+        start = App.Vector(0, 0)
+
+        offset_length = App.Vector(offset, 0)
+        horizontal_length = App.Vector(width, 0)
+        vertical_length = App.Vector(0, thickness)
+        gap_length = App.Vector(gap, 0)
+
+        prev_index = -1
+        for idx in range(0, num_tabs):
+            # def add_line(source_line):
+            #     new_line = Part.LineSegment(source_line)
+            #     new_line.EndPoint = new_line.EndPoint + horizontal_offset
+            #     new_line.StartPoint = new_line.StartPoint + horizontal_offset
+            #     App.Console.PrintMessage(new_line)
+            #
+            #     return new_line
+
+            if idx == 0:
+                line = Part.LineSegment(start, offset_length)
+                line_index = sketch.addGeometry(line, False)
+            else:
+                line = Part.LineSegment(start, start + gap_length)
+                line_index = sketch.addGeometry(line, False)
+
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
+
+            if prev_index != -1:
+                sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
+
+            lines.append(line_index)
+            prev_index = line_index
+            start = line.EndPoint
+
+            line = Part.LineSegment(start, start + vertical_length)
+            line_index = sketch.addGeometry(line, False)
+            sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
+            lines.append(line_index)
+            prev_index = line_index
+            start = line.EndPoint
+
+            if idx == 0:
+                vertical_line_index = line_index
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', vertical_line_index, thickness))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), "{0}thickness".format(sheet_prefix))
+
+            line = Part.LineSegment(start, start + horizontal_length)
+            line_index = sketch.addGeometry(line, False)
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
+            lines.append(line_index)
+            prev_index = line_index
+            start = line.EndPoint
+
+            if idx == 0:
+                horizontal_line_index = line_index
+                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', horizontal_line_index, width))
+                sketch.setExpression("Constraints[{0}]".format(str(constraint)), "{0}{1}".format(sheet_prefix, width_alias))
+
+            line = Part.LineSegment(start, start - vertical_length)
+            line_index = sketch.addGeometry(line, False)
+            sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
+            lines.append(line_index)
+            prev_index = line_index
+            start = line.EndPoint
+
+        line = Part.LineSegment(start, start + offset_length)
+        line_index = sketch.addGeometry(line, False)
+        sketch.addConstraint(Sketcher.Constraint('Coincident', prev_index, END, line_index, START))
+        lines.append(line_index)
+
+        return lines
+
     def draw_end_tabs(self, sketch):
         sheet = self.worksheet
         num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsDepth')))
@@ -240,11 +328,11 @@ class Box:
         return '<<' + self.worksheet.Name + '>>.'
 
     @staticmethod
-    def get_vectors(width, height):
-        lower_left = App.Vector(0, 0, 0)
-        upper_left = App.Vector(0, height, 0)
-        lower_right = App.Vector(width, 0, 0)
-        upper_right = App.Vector(width, height, 0)
+    def get_vectors(width, height, offset_h = 0, offset_v = 0):
+        lower_left = App.Vector(0 + offset_h, 0 + offset_v, 0)
+        upper_left = App.Vector(0 + offset_h, height + offset_v, 0)
+        lower_right = App.Vector(width + offset_h, 0 + offset_v, 0)
+        upper_right = App.Vector(width + offset_h, height + offset_v, 0)
 
         return lower_left, upper_left, lower_right, upper_right
 
