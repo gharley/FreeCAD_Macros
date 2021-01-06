@@ -141,7 +141,6 @@ class Box:
         box = self.draw_box(sketch, width * 2, height + thickness * thickness_multiplier,
                             '{0}{1} + {0}thickness * 2'.format(sheet_prefix, width_alias),
                             '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[BOTTOM], START, ORIGIN, START))
 
         if self.box_type != 2:
             tab = tab_func(sketch)[0]
@@ -157,6 +156,8 @@ class Box:
             sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT], START, lines[0], START))
             sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT], END, lines[len(lines)-1], END))
             sketch.delGeometry(box[BOTTOM])
+
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT], END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
