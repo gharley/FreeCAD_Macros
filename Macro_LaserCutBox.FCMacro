@@ -234,18 +234,18 @@ class Box:
 
         lines = []
 
+        start = App.Vector(0, 0)
         offset_length = App.Vector(offset, 0)
+        gap_length = App.Vector(gap, 0)
         horizontal_length = App.Vector(width, 0)
-        horizontal_line_index = -1
+
         if is_inset:
             vertical_length = App.Vector(0, thickness)
         else:
             vertical_length = App.Vector(0, -thickness)
 
-        gap_length = App.Vector(gap, 0)
-
-        start = App.Vector(0, 0)
         gap_line_index = -1
+        horizontal_line_index = -1
         offset_line_index = -1
         vertical_line_index = -1
         line_index = -1
