@@ -111,7 +111,7 @@ class Box:
     def build_geometry(self):
         self.init_sheet()
         self.build_long_side()
-        self.build_short_side()
+        # self.build_short_side()
 
     def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, num_tabs_alias, tab_func):
         sheet = self.worksheet
@@ -133,52 +133,52 @@ class Box:
         else:
             thickness_multiplier = 1
 
-        lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height + thickness * thickness_multiplier)
-
-        box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False),
-               sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)]
-
-        if self.box_type != 1:
-            lines = self.draw_edge_tabs(sketch, num_tabs_alias, 'tabWidth', 'offsetH', 'sideGap', True)
-        else:
-            lines = [sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)]
-
-        box.append(lines[0])
-
-        box.append(sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False))
-
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', box[RIGHT]))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, width_alias))
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT], height + thickness * thickness_multiplier))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
-
-        sketch.addConstraint(Sketcher.Constraint('Equal', box[LEFT], box[RIGHT]))
-
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT], START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], START, box[LEFT], END))
-
-        if self.box_type != 1:
-            sketch.addConstraint(Sketcher.Constraint('Horizontal', box[BOTTOM]))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[LEFT], START))
-        else:
-            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], END, box[LEFT], START))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[RIGHT], END))
-
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT], END, ORIGIN, START))
-
-        if self.box_type != 2:
-            tab = tab_func(sketch)[0]
-
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, offset_alias))
-
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
+        lines = self.draw_edge_tabs(sketch, 'numTabsHeight', 'tabWidth', 'offsetV', 'heightGap', True, True)
+        # lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height + thickness * thickness_multiplier)
+        #
+        # box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False),
+        #        sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)]
+        #
+        # if self.box_type != 1:
+        #     lines = self.draw_edge_tabs(sketch, num_tabs_alias, 'tabWidth', 'offsetH', 'sideGap')
+        # else:
+        #     lines = [sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)]
+        #
+        # box.append(lines[0])
+        #
+        # box.append(sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False))
+        #
+        # sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
+        # sketch.addConstraint(Sketcher.Constraint('Vertical', box[RIGHT]))
+        # sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
+        #
+        # constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], width))
+        # sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, width_alias))
+        #
+        # constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT], height + thickness * thickness_multiplier))
+        # sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
+        #
+        # sketch.addConstraint(Sketcher.Constraint('Equal', box[LEFT], box[RIGHT]))
+        #
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT], START))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], START, box[LEFT], END))
+        #
+        # if self.box_type != 1:
+        #     sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[LEFT], START))
+        # else:
+        #     sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], END, box[LEFT], START))
+        #     sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[RIGHT], END))
+        #
+        # sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT], END, ORIGIN, START))
+        #
+        # if self.box_type != 2:
+        #     tab = tab_func(sketch)[0]
+        #
+        #     constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+        #     sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, offset_alias))
+        #
+        #     constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
+        #     sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -246,7 +246,7 @@ class Box:
                                 '{0}thickness'.format(sheet_prefix),
                                 '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
 
-    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=False):
+    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=True, is_vertical=False):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -259,14 +259,20 @@ class Box:
         lines = []
 
         start = App.Vector(0, 0)
-        offset_length = App.Vector(offset, 0)
-        gap_length = App.Vector(gap, 0)
-        horizontal_length = App.Vector(width, 0)
 
-        if is_inset:
-            vertical_length = App.Vector(0, thickness)
+        if is_vertical:
+            offset_length = App.Vector(0, offset)
+            gap_length = App.Vector(0, gap)
+            horizontal_length = App.Vector(0, width)
+            vertical_length = App.Vector(thickness, 0)
         else:
-            vertical_length = App.Vector(0, -thickness)
+            offset_length = App.Vector(offset, 0)
+            gap_length = App.Vector(gap, 0)
+            horizontal_length = App.Vector(width, 0)
+            vertical_length = App.Vector(0, thickness)
+
+        if not is_inset:
+            vertical_length = -vertical_length
 
         gap_line_index = -1
         horizontal_line_index = -1
@@ -292,15 +298,15 @@ class Box:
 
                 if offset_line_index == -1:
                     offset_line_index = line_index
-                    constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', offset_line_index, offset))
-                    sketch.setExpression('Constraints[{0}]'.format(str(constraint)), "{0}{1}".format(sheet_prefix, offset_alias))
+                    if is_vertical:
+                        sketch.addConstraint(Sketcher.Constraint('Vertical', offset_line_index))
+                    else:
+                        sketch.addConstraint(Sketcher.Constraint('Horizontal', offset_line_index))
             else:
                 start, line_index, line = add_line(start, gap_length, line_index)
 
                 if gap_line_index == -1:
                     gap_line_index = line_index
-                    constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', gap_line_index, gap))
-                    sketch.setExpression('Constraints[{0}]'.format(str(constraint)), '{0}{1}'.format(sheet_prefix, gap_alias))
                 else:
                     sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
@@ -308,14 +314,6 @@ class Box:
 
             if idx == 0:
                 vertical_line_index = line_index
-                value = thickness
-                expression = '{0}thickness'.format(sheet_prefix)
-                if not is_inset:
-                    value = -value
-                    expression = '-' + expression
-
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', vertical_line_index, value))
-                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), expression)
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
 
@@ -323,8 +321,6 @@ class Box:
 
             if idx == 0:
                 horizontal_line_index = line_index
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', horizontal_line_index, width))
-                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), '{0}{1}'.format(sheet_prefix, width_alias))
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', horizontal_line_index, line_index))
 
@@ -333,6 +329,29 @@ class Box:
 
         start, line_index, line = add_line(start, offset_length, line_index)
         sketch.addConstraint(Sketcher.Constraint('Equal', offset_line_index, line_index))
+
+        value = thickness
+        expression = '{0}thickness'.format(sheet_prefix)
+
+        if not is_inset:
+            value = -value
+            expression = '-' + expression
+
+        if is_vertical:
+            constraint_t = sketch.addConstraint(Sketcher.Constraint('DistanceX', vertical_line_index, value))
+            constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceY', offset_line_index, offset))
+            constraint_g = sketch.addConstraint(Sketcher.Constraint('DistanceY', gap_line_index, gap))
+            constraint_h = sketch.addConstraint(Sketcher.Constraint('DistanceY', horizontal_line_index, width))
+        else:
+            constraint_t = sketch.addConstraint(Sketcher.Constraint('DistanceY', vertical_line_index, value))
+            constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceX', offset_line_index, offset))
+            constraint_g = sketch.addConstraint(Sketcher.Constraint('DistanceX', gap_line_index, gap))
+            constraint_h = sketch.addConstraint(Sketcher.Constraint('DistanceX', horizontal_line_index, width))
+
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_d)), "{0}{1}".format(sheet_prefix, offset_alias))
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_g)), '{0}{1}'.format(sheet_prefix, gap_alias))
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_t)), expression)
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_h)), '{0}{1}'.format(sheet_prefix, width_alias))
 
         return lines
 
