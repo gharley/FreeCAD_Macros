@@ -129,7 +129,6 @@ class Box:
         width = sheet.get(sheet.getCellFromAlias(width_alias))
         height = sheet.get(sheet.getCellFromAlias(height_alias))
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
-        offset = sheet.get(sheet.getCellFromAlias(offset_alias))
 
         if self.box_type == 0:
             thickness_multiplier = 3
@@ -140,50 +139,41 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height + thickness * thickness_multiplier)
 
-        box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]
-        # sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
+        box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False),
+               sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)]
+
+        if self.box_type != 1:
+            lines = self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap', True)
+        else:
+            lines = [sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)]
+
+        box.append(lines[0])
+
+        box.append(sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False))
+
+        sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
+        sketch.addConstraint(Sketcher.Constraint('Vertical', box[RIGHT]))
+        sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
+
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, 'width'))
 
-        box.append(sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False))
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT], START))
-        # sketch.addConstraint(Sketcher.Constraint('Perpendicular', box[TOP], box[RIGHT]))
-        # sketch.addConstraint(Sketcher.Constraint('Vertical', box[RIGHT]))
-
-        lines = self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap', True)
-        # sketch.addConstraint(Sketcher.Constraint('Perpendicular', box[RIGHT], lines[len(lines)-1]))
-        box.append(lines)  # just to keep the indexes right
-
-        box.append(sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False))
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT], height + thickness * thickness_multiplier))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
 
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', lines[0]))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', box[RIGHT]))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
-        # sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT], START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', lines[0], START, box[LEFT], START))
-        # sketch.addConstraint(Sketcher.Constraint('Perpendicular', lines[0], box[LEFT]))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT], END, box[TOP], START))
-        # App.ActiveDocument.recompute(None, True, True)
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', lines[len(lines)-1], END, box[RIGHT], END))
-        # sketch.addConstraint(Sketcher.Constraint('Perpendicular', box[LEFT], box[TOP]))
         sketch.addConstraint(Sketcher.Constraint('Equal', box[LEFT], box[RIGHT]))
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT], END, ORIGIN, START))
 
-        # sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
-        # sketch.addConstraint(Sketcher.Constraint('Vertical', right))
-        #
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
-        #
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT], END, lines[len(lines) - 1], END))
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT], START, lines[0], START))
-        #
-        # box = self.draw_box(sketch, width, height + thickness * thickness_multiplier,
-        #                     '{0}{1} + {0}thickness * 2'.format(sheet_prefix, width_alias),
-        #                     '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT], START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], START, box[LEFT], END))
+
+        if self.box_type != 1:
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', box[BOTTOM]))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[LEFT], START))
+        else:
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], END, box[LEFT], START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM], START, box[RIGHT], END))
+
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT], END, ORIGIN, START))
 
         # if self.box_type != 2:
         #     tab = tab_func(sketch)[0]
@@ -193,17 +183,6 @@ class Box:
         #
         #     constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, thickness))
         #     sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}thickness'.format(sheet_prefix))
-
-        # if self.box_type != 1:
-        #     lines = self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap', False)
-        #     sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT], END, lines[len(lines)-1], END))
-        #     sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT], START, lines[0], START))
-        #     sketch.delGeometry(box[BOTTOM])
-
-
-        #
-        # constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT], height))
-        # sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
