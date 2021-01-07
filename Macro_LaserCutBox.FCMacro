@@ -6,6 +6,7 @@ __date__ = "12/31/20"
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
 from math import floor
+from typing import Optional
 
 from PySide import QtCore, QtGui
 from FreeCAD import Gui
@@ -35,7 +36,7 @@ class Box:
         if not App.ActiveDocument:
             App.newDocument()
 
-        self.dialog = None
+        self.dialog = Optional[QtGui.QWidget]
         self.worksheet = None
         self.box_type = 0
 
@@ -45,10 +46,10 @@ class Box:
         self.dialog.exec_()
 
     def init_dialog(self):
-        self.dialog = Gui.PySideUic.loadUi("C:/Users/gharley/AppData/Roaming/FreeCAD/Macro/Macro_LaserCutBox.ui")
+        self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(App.getUserMacroDir()))
         self.dialog.setWindowTitle("Laser cut box")
 
-        QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.init_sheet)
+        QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.build_geometry)
 
     def init_sheet(self):
         self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "Parameters")
@@ -90,41 +91,35 @@ class Box:
         self.worksheet.mergeCells(col_a + ':' + column_b(index))
         set_cell(col_a, 'Calculated Values DO NOT EDIT')
 
-        def set_calc(index, label, alias, formula):
-            col_a = column_a(index)
-            col_b = column_b(index)
-            set_cell(col_a, label)
-            set_cell(col_b, formula)
-            self.worksheet.setAlias(col_b, alias)
+        def set_calc(label, alias, formula):
+            _col_b = column_b(index)
+            set_cell(column_a(index), label)
+            set_cell(_col_b, formula)
+            self.worksheet.setAlias(_col_b, alias)
 
         index += 1
-        set_calc(index, 'Side tab gap', 'sideGap',
-                 '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
+        set_calc('Side tab gap', 'sideGap', '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
 
         index += 1
-        set_calc(index, 'End tab gap', 'endGap',
-                 '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
+        set_calc('End tab gap', 'endGap', '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
 
         index += 1
-        set_calc(index, 'Height tab gap', 'heightGap',
-                 '=(height - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)')
+        set_calc('Height tab gap', 'heightGap', '=(height - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)')
 
         App.ActiveDocument.recompute(None, True, True)
 
+    def build_geometry(self):
+        self.init_sheet()
         self.build_long_side()
-        # self.build_short_side()
+        self.build_short_side()
 
-    def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, plane_index, tab_func):
+    def _build_side(self, sketch_name, width_alias, height_alias, offset_alias, num_tabs_alias, tab_func):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
         body = App.ActiveDocument.addObject('PartDesign::Body', sketch_name)
         sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name + "Sketch")
         body.addObject(sketch)
-
-        # This looks good but screws up DXF export
-        # sketch.Support = body.Origin.OriginFeatures[plane_index]
-        # sketch.MapMode = 'FlatFace'
 
         width = sheet.get(sheet.getCellFromAlias(width_alias))
         height = sheet.get(sheet.getCellFromAlias(height_alias))
@@ -144,7 +139,7 @@ class Box:
                sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)]
 
         if self.box_type != 1:
-            lines = self.draw_edge_tabs(sketch, 'numTabsLength', 'tabWidth', 'offsetH', 'sideGap', True)
+            lines = self.draw_edge_tabs(sketch, num_tabs_alias, 'tabWidth', 'offsetH', 'sideGap', True)
         else:
             lines = [sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)]
 
@@ -157,7 +152,7 @@ class Box:
         sketch.addConstraint(Sketcher.Constraint('Vertical', box[LEFT]))
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, 'width'))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, width_alias))
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT], height + thickness * thickness_multiplier))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1} + {0}thickness * {2}'.format(sheet_prefix, height_alias, thickness_multiplier))
@@ -189,12 +184,12 @@ class Box:
         Gui.ActiveDocument.ActiveView.fitAll()
 
     def build_long_side(self):
-        self._build_side("BoxSide", "width", "height", "offsetH", XZ_PLANE, self.draw_side_tabs)
+        self._build_side("BoxSide", "width", "height", "offsetH", 'numTabsLength', self.draw_side_slots)
 
     def build_short_side(self):
-        self._build_side("BoxEnd", "depth", "height", "offsetH", YZ_PLANE, self.draw_end_tabs)
+        self._build_side("BoxEnd", "depth", "height", "offsetH", 'numTabsDepth', self.draw_end_slots)
 
-    def draw_box(self, sketch, width, height, expression_h, expression_v):
+    def draw_slot(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
         top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
@@ -203,7 +198,6 @@ class Box:
         left = sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
 
         sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
-        # sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
         sketch.addConstraint(Sketcher.Constraint('Vertical', left))
         sketch.addConstraint(Sketcher.Constraint('Vertical', right))
 
@@ -220,14 +214,13 @@ class Box:
         sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
         sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
 
-        # sketch.addConstraint(Sketcher.Constraint('Equal', top, bottom))
-
         return [top, right, bottom, left]
 
-    def _draw_tabs(self, sketch, num_tabs, tab_width, thickness, gap, expression_width, expression_thickness, expression_gap):
+    def _draw_slots(self, sketch, num_tabs, tab_width, thickness, gap, expression_width, expression_thickness, expression_gap):
         tabs = []
+        first = []
         for idx in range(0, num_tabs):
-            tab = self.draw_box(sketch, tab_width, thickness, expression_width, expression_thickness)
+            tab = self.draw_slot(sketch, tab_width, thickness, expression_width, expression_thickness)
             tabs.append(tab)
 
             if idx == 0:
@@ -240,7 +233,7 @@ class Box:
 
         return tabs
 
-    def draw_tabs(self, sketch, num_tabs, gap_alias):
+    def draw_slots(self, sketch, num_tabs, gap_alias):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -248,10 +241,10 @@ class Box:
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
         gap = sheet.get(sheet.getCellFromAlias(gap_alias))
 
-        return self._draw_tabs(sketch, num_tabs, tab_width, thickness, gap,
-                               '{0}tabWidth'.format(sheet_prefix),
-                               '{0}thickness'.format(sheet_prefix),
-                               '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
+        return self._draw_slots(sketch, num_tabs, tab_width, thickness, gap,
+                                '{0}tabWidth'.format(sheet_prefix),
+                                '{0}thickness'.format(sheet_prefix),
+                                '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
 
     def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=False):
         sheet = self.worksheet
@@ -262,7 +255,6 @@ class Box:
         offset = sheet.get(sheet.getCellFromAlias(offset_alias))
         gap = sheet.get(sheet.getCellFromAlias(gap_alias))
         thickness = sheet.get(sheet.getCellFromAlias('thickness'))
-        total_width = offset * 2 + width * num_tabs + gap * (num_tabs - 1)
 
         lines = []
 
@@ -282,7 +274,7 @@ class Box:
         vertical_line_index = -1
         line_index = -1
 
-        def add_line(start_point, end_offset, previous, is_horizontal=False, is_vertical=False):
+        def add_line(start_point, end_offset, previous):
             new_line = Part.LineSegment(start_point, start_point + end_offset)
             index = sketch.addGeometry(new_line, False)
 
@@ -296,14 +288,14 @@ class Box:
 
         for idx in range(0, num_tabs):
             if idx == 0:
-                start, line_index, line = add_line(start, offset_length, line_index, True)
+                start, line_index, line = add_line(start, offset_length, line_index)
 
                 if offset_line_index == -1:
                     offset_line_index = line_index
                     constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', offset_line_index, offset))
                     sketch.setExpression('Constraints[{0}]'.format(str(constraint)), "{0}{1}".format(sheet_prefix, offset_alias))
             else:
-                start, line_index, line = add_line(start, gap_length, line_index, True)
+                start, line_index, line = add_line(start, gap_length, line_index)
 
                 if gap_line_index == -1:
                     gap_line_index = line_index
@@ -312,7 +304,7 @@ class Box:
                 else:
                     sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
-            start, line_index, line = add_line(start, vertical_length, line_index, False, True)
+            start, line_index, line = add_line(start, vertical_length, line_index)
 
             if idx == 0:
                 vertical_line_index = line_index
@@ -327,7 +319,7 @@ class Box:
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
 
-            start, line_index, line = add_line(start, horizontal_length, line_index, True)
+            start, line_index, line = add_line(start, horizontal_length, line_index)
 
             if idx == 0:
                 horizontal_line_index = line_index
@@ -336,25 +328,25 @@ class Box:
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', horizontal_line_index, line_index))
 
-            start, line_index, line = add_line(start, -vertical_length, line_index, False, True)
+            start, line_index, line = add_line(start, -vertical_length, line_index)
             sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
 
-        start, line_index, line = add_line(start, offset_length, line_index, True)
+        start, line_index, line = add_line(start, offset_length, line_index)
         sketch.addConstraint(Sketcher.Constraint('Equal', offset_line_index, line_index))
 
         return lines
 
-    def draw_end_tabs(self, sketch):
+    def draw_end_slots(self, sketch):
         sheet = self.worksheet
         num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsDepth')))
 
-        return self.draw_tabs(sketch, num_tabs, "endGap")
+        return self.draw_slots(sketch, num_tabs, "endGap")
 
-    def draw_side_tabs(self, sketch):
+    def draw_side_slots(self, sketch):
         sheet = self.worksheet
         num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsLength')))
 
-        return self.draw_tabs(sketch, num_tabs, "sideGap")
+        return self.draw_slots(sketch, num_tabs, "sideGap")
 
     def get_sheet_expression_prefix(self):
         return '<<' + self.worksheet.Name + '>>.'
