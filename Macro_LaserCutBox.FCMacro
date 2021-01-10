@@ -5,12 +5,14 @@ __date__ = "12/31/20"
 
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
-from math import floor, pi
+from math import floor
 from typing import Optional
 
 from PySide import QtCore, QtGui
 from FreeCAD import Gui
 import Part, PartDesign, Sketcher
+
+import Macro_LaserCutBox_rc
 
 App = FreeCAD
 
@@ -36,7 +38,10 @@ class Box:
         if not App.ActiveDocument:
             App.newDocument()
 
+        self.macro_dir = App.getUserMacroDir()
+
         self.dialog = Optional[QtGui.QWidget]
+        self.image = Optional[QtGui.QLabel]
         self.worksheet = None
         self.box_type = 0
 
@@ -46,8 +51,17 @@ class Box:
         self.dialog.exec_()
 
     def init_dialog(self):
-        self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(App.getUserMacroDir()))
+        self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Laser cut box")
+
+        self.image = self.dialog.findChild(QtGui.QLabel, 'image')
+        # pixmap = QtGui.QPixmap(":/images/end_all.png")
+        pixmap = QtGui.QPixmap(self.macro_dir + "end_all.png")
+        # pixmap = QtGui.QPixmap(':/images/end_all.png')
+        self.image.setPixmap(pixmap.scaledToHeight(self.image.height()))
+        # self.image.setText('pixmap')
+        # App.Console.PrintMessage(QtCore.QFile.exists(self.macro_dir + "end_all.png"))
+        App.Console.PrintMessage(pixmap.isNull())
 
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.build_geometry)
 
