@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>429</width>
-    <height>435</height>
+    <height>458</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
      <x>10</x>
      <y>10</y>
      <width>301</width>
-     <height>414</height>
+     <height>444</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -64,23 +64,81 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout" columnminimumwidth="100,0,0">
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_5">
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Material thickness:</string>
+         <string>Inner height:</string>
         </property>
         <property name="scaledContents">
          <bool>false</bool>
         </property>
         <property name="buddy">
-         <cstring>thickness</cstring>
+         <cstring>height</cstring>
         </property>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="QLineEdit" name="depth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The inside depth of the box. The actual depth will vary with material thickness.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>50</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>Bottom thickness:</string>
+        </property>
+        <property name="buddy">
+         <cstring>bottomThickness</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>60</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
       <item row="3" column="1">
        <widget class="QLineEdit" name="thickness">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The thickness of the box material, used to calculate tab and slot sizes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>3</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="height">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The inside height of the box. The actual height will vary with material thickness.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>50</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -103,34 +161,11 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="depth">
-        <property name="text">
-         <string>50</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Inner height:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>height</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="width">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The inside width of the box. The actual width will vary with material thickness.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>100</string>
         </property>
@@ -139,6 +174,32 @@
         </property>
         <property name="placeholderText">
          <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="bottomThickness">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Only necessary if bottom material is a different thickness than the sides. If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>0</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Material thickness:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>thickness</cstring>
         </property>
        </widget>
       </item>
@@ -155,31 +216,28 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="height">
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_16">
         <property name="text">
-         <string>50</string>
+         <string>Lid thickness</string>
+        </property>
+        <property name="buddy">
+         <cstring>lidThickness</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="lidThickness">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lid thickness is used to specify the distance from the top of the side to the top of the slots (if specified). If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>0</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
        </widget>
-      </item>
-      <item row="1" column="2">
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>60</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </item>
@@ -236,6 +294,9 @@
       </item>
       <item row="6" column="1">
        <widget class="QLineEdit" name="tabWidth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the width of tabs and slots.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>6</string>
         </property>
@@ -262,6 +323,9 @@
       </item>
       <item row="10" column="1">
        <widget class="QLineEdit" name="offsetV">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies how far edge tabs are placed from the top and bottom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>6</string>
         </property>
@@ -288,6 +352,9 @@
       </item>
       <item row="9" column="1">
        <widget class="QLineEdit" name="offsetH">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies how far side tabs and slots are placed from the edges.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>6</string>
         </property>
@@ -301,6 +368,9 @@
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="tabTypes">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Choose whether the box will have inset slots or edge tabs (or both) on the top and/or bottom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="currentIndex">
          <number>0</number>
         </property>
@@ -354,6 +424,9 @@
      <layout class="QGridLayout" name="gridLayout_3" columnminimumwidth="100,0,0">
       <item row="1" column="1">
        <widget class="QLineEdit" name="numTabsDepth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the depth (short side) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>3</string>
         </property>
@@ -367,6 +440,9 @@
       </item>
       <item row="2" column="1">
        <widget class="QLineEdit" name="numTabsHeight">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the height (edges) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>3</string>
         </property>
@@ -393,6 +469,9 @@
       </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="numTabsLength">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the width (long side) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>6</string>
         </property>
@@ -451,7 +530,7 @@
    <property name="geometry">
     <rect>
      <x>320</x>
-     <y>100</y>
+     <y>250</y>
      <width>90</width>
      <height>147</height>
     </rect>
@@ -460,55 +539,76 @@
     <string/>
    </property>
   </widget>
-  <widget class="QCheckBox" name="chkSide">
+  <widget class="QWidget" name="verticalLayoutWidget_2">
    <property name="geometry">
     <rect>
      <x>330</x>
-     <y>290</y>
-     <width>72</width>
-     <height>20</height>
+     <y>100</y>
+     <width>91</width>
+     <height>80</height>
     </rect>
    </property>
-   <property name="text">
-    <string>Box Side</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="chkEnd">
-   <property name="geometry">
-    <rect>
-     <x>330</x>
-     <y>320</y>
-     <width>72</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Box End</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QCheckBox" name="chkBottom">
-   <property name="geometry">
-    <rect>
-     <x>330</x>
-     <y>350</y>
-     <width>72</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Box Bottom</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QCheckBox" name="chkSide">
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check to generate a sketch for the long side (width) of the box.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Box Side</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="chkEnd">
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check to generate a sketch for the short side (depth) of the box.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Box End</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="chkBottom">
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check to generate a sketch for the bottom of the box.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Box Bottom</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>width</tabstop>
+  <tabstop>depth</tabstop>
+  <tabstop>height</tabstop>
+  <tabstop>thickness</tabstop>
+  <tabstop>bottomThickness</tabstop>
+  <tabstop>lidThickness</tabstop>
+  <tabstop>tabTypes</tabstop>
+  <tabstop>tabWidth</tabstop>
+  <tabstop>offsetH</tabstop>
+  <tabstop>offsetV</tabstop>
+  <tabstop>numTabsLength</tabstop>
+  <tabstop>numTabsDepth</tabstop>
+  <tabstop>numTabsHeight</tabstop>
+  <tabstop>chkSide</tabstop>
+  <tabstop>chkEnd</tabstop>
+  <tabstop>chkBottom</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
