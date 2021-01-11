@@ -61,7 +61,7 @@ class Box:
         self.image.setPixmap(pixmap.scaledToHeight(self.image.height()))
         # self.image.setText('pixmap')
         # App.Console.PrintMessage(QtCore.QFile.exists(self.macro_dir + "end_all.png"))
-        App.Console.PrintMessage(pixmap.isNull())
+        # App.Console.PrintMessage(pixmap.isNull())
 
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.build_geometry)
 
@@ -132,9 +132,15 @@ class Box:
 
     def build_geometry(self):
         self.init_sheet()
-        self.build_long_side()
-        self.build_short_side()
-        self.build_bottom()
+
+        if self.dialog.chkSide.isChecked():
+            self.build_long_side()
+
+        if self.dialog.chkEnd.isChecked():
+            self.build_short_side()
+
+        if self.dialog.chkBottom.isChecked():
+            self.build_bottom()
 
     @staticmethod
     def _add_sketch(sketch_name):
