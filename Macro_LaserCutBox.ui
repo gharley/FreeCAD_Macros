@@ -64,6 +64,32 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout" columnminimumwidth="100,0,0">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Inner width:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>width</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Inner depth:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>depth</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
@@ -74,6 +100,39 @@
         </property>
         <property name="buddy">
          <cstring>height</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Material thickness:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>thickness</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>Bottom thickness:</string>
+        </property>
+        <property name="buddy">
+         <cstring>bottomThickness</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_16">
+        <property name="text">
+         <string>Lid thickness</string>
+        </property>
+        <property name="buddy">
+         <cstring>lidThickness</cstring>
         </property>
        </widget>
       </item>
@@ -90,16 +149,6 @@
         </property>
         <property name="placeholderText">
          <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_15">
-        <property name="text">
-         <string>Bottom thickness:</string>
-        </property>
-        <property name="buddy">
-         <cstring>bottomThickness</cstring>
         </property>
        </widget>
       </item>
@@ -148,19 +197,6 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Inner depth:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>depth</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="width">
         <property name="toolTip">
@@ -187,42 +223,6 @@
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Material thickness:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>thickness</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Inner width:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>width</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_16">
-        <property name="text">
-         <string>Lid thickness</string>
-        </property>
-        <property name="buddy">
-         <cstring>lidThickness</cstring>
         </property>
        </widget>
       </item>
@@ -266,6 +266,19 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0,0,0,0">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Box type:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>tabTypes</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="6" column="0">
        <widget class="QLabel" name="label_10">
         <property name="text">
@@ -279,16 +292,29 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
+      <item row="9" column="0">
+       <widget class="QLabel" name="label_12">
         <property name="text">
-         <string>Box type:</string>
+         <string>Horizontal offset:</string>
         </property>
         <property name="scaledContents">
          <bool>false</bool>
         </property>
         <property name="buddy">
-         <cstring>tabTypes</cstring>
+         <cstring>offsetH</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Vertical offset:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>offsetV</cstring>
         </property>
        </widget>
       </item>
@@ -308,19 +334,6 @@
         </property>
        </widget>
       </item>
-      <item row="10" column="0">
-       <widget class="QLabel" name="label_11">
-        <property name="text">
-         <string>Vertical offset:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>offsetV</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="10" column="1">
        <widget class="QLineEdit" name="offsetV">
         <property name="toolTip">
@@ -334,19 +347,6 @@
         </property>
         <property name="placeholderText">
          <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="0">
-       <widget class="QLabel" name="label_12">
-        <property name="text">
-         <string>Horizontal offset:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>offsetH</cstring>
         </property>
        </widget>
       </item>
@@ -422,6 +422,45 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_3" columnminimumwidth="100,0,0">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>Side tabs:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>numTabsLength</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_9">
+        <property name="text">
+         <string>End tabs:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>numTabsDepth</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Height tabs:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>numTabsHeight</cstring>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1">
        <widget class="QLineEdit" name="numTabsDepth">
         <property name="toolTip">
@@ -454,19 +493,6 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_13">
-        <property name="text">
-         <string>Height tabs:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>numTabsHeight</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="numTabsLength">
         <property name="toolTip">
@@ -480,32 +506,6 @@
         </property>
         <property name="placeholderText">
          <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_9">
-        <property name="text">
-         <string>End tabs:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>numTabsDepth</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>Side tabs:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>numTabsLength</cstring>
         </property>
        </widget>
       </item>

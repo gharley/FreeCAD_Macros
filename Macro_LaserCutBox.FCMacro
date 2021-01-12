@@ -84,7 +84,7 @@ class Box:
             col_b = column_b(index)
 
             buddy = obj.buddy()
-            if not (buddy is None):
+            if buddy is not None:
                 if isinstance(buddy, QtGui.QComboBox):
                     self.box_type = buddy.currentIndex()
                     index -= 1
@@ -187,9 +187,9 @@ class Box:
         box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]
 
         if self.box_type != 2:
-            tab = tab_func(sketch)[0]
+            tab = tab_func(sketch)[-1]
 
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], START, tab[TOP], START, offset))
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', tab[TOP], END, box[TOP], END, offset))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}{1}'.format(sheet_prefix, offset_alias))
 
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, lid_thickness))
@@ -375,16 +375,16 @@ class Box:
             start = App.Vector(0, 0)
 
         if is_vertical:
+            thickness = sheet.thickness
             offset_length = App.Vector(0, offset)
             gap_length = App.Vector(0, gap)
             horizontal_length = App.Vector(0, width)
-            thickness = sheet.get(sheet.getCellFromAlias('thickness'))
             vertical_length = App.Vector(thickness, 0)
         else:
-            offset_length = App.Vector(offset, 0)
+            thickness = sheet.bottomThickness
+            offset_length = App.Vector(offset, 0) + App.Vector(sheet.thickness, 0)
             gap_length = App.Vector(gap, 0)
             horizontal_length = App.Vector(width, 0)
-            thickness = sheet.get(sheet.getCellFromAlias('bottomThickness'))
             vertical_length = App.Vector(0, thickness)
 
         if not is_inset:
@@ -447,13 +447,15 @@ class Box:
 
         value = thickness
         if is_vertical:
-            expression = '{0}thickness'.format(sheet_prefix)
+            thickness_expression = '{0}thickness'.format(sheet_prefix)
+            offset_expression = '{0}{1}'.format(sheet_prefix, offset_alias)
         else:
-            expression = '{0}bottomThickness'.format(sheet_prefix)
+            thickness_expression = '{0}bottomThickness'.format(sheet_prefix)
+            offset_expression = '{0}{1} + {0}thickness'.format(sheet_prefix, offset_alias)
 
         if not is_inset:
             value = -value
-            expression = '-' + expression
+            thickness_expression = '-' + thickness_expression
 
         if is_vertical:
             constraint_t = sketch.addConstraint(Sketcher.Constraint('DistanceX', vertical_line_index, value))
@@ -466,9 +468,9 @@ class Box:
             constraint_g = sketch.addConstraint(Sketcher.Constraint('DistanceX', gap_line_index, gap))
             constraint_h = sketch.addConstraint(Sketcher.Constraint('DistanceX', horizontal_line_index, width))
 
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_d)), "{0}{1}".format(sheet_prefix, offset_alias))
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_d)), offset_expression)
         sketch.setExpression('Constraints[{0}]'.format(str(constraint_g)), '{0}{1}'.format(sheet_prefix, gap_alias))
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_t)), expression)
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint_t)), thickness_expression)
         sketch.setExpression('Constraints[{0}]'.format(str(constraint_h)), '{0}{1}'.format(sheet_prefix, width_alias))
 
         return lines
