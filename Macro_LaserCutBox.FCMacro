@@ -149,14 +149,6 @@ class Box:
         if self.dialog.chkBottom.isChecked():
             self.build_bottom()
 
-    @staticmethod
-    def _add_sketch(sketch_name):
-        body = App.ActiveDocument.addObject('PartDesign::Body', sketch_name)
-        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name + 'Sketch')
-        body.addObject(sketch)
-
-        return sketch
-
     def _build_side(self, sketch_name, width_alias, num_tabs_alias, gap_alias, tab_func):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
@@ -184,15 +176,15 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(actual_width, actual_height)
 
-        box = [sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]
+        box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
 
         if self.box_type != 2:
             tab = tab_func(sketch)[-1]
 
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', tab[TOP], END, box[TOP], END, offset))
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', tab[TOP], END, box[TOP][-1], END, offset))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
 
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP], START, lid_thickness))
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP][0], START, lid_thickness))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}lidThickness'.format(sheet_prefix))
 
         lines = self.draw_edge_tabs(sketch, 'numTabsHeight', 'tabWidth', 'offsetV', 'heightGap', True, True)
@@ -208,8 +200,8 @@ class Box:
         lines = self.draw_edge_tabs(sketch, 'numTabsHeight', 'tabWidth', 'offsetV', 'heightGap', True, True)
         box.append(lines)
 
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP]))
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP], actual_width))
+        sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP][0]))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], actual_width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
 
         if self.box_type != 1:
@@ -221,18 +213,19 @@ class Box:
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, actual_height))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
 
-        sketch.movePoint(box[TOP], START, upper_left)
-        sketch.movePoint(box[RIGHT][-1], END, upper_right)
-        sketch.movePoint(box[LEFT][-1], END, upper_left)
-        sketch.movePoint(box[BOTTOM][0], START, lower_left)
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], START, box[LEFT][-1], END))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT][-1], END))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][0], START, box[BOTTOM][0], START))
+        self._constrain_sides(sketch, box, upper_left, upper_right, lower_left)
+        # sketch.movePoint(box[TOP], START, upper_left)
+        # sketch.movePoint(box[RIGHT][-1], END, upper_right)
+        # sketch.movePoint(box[LEFT][-1], END, upper_left)
+        # sketch.movePoint(box[BOTTOM][0], START, lower_left)
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], START, box[LEFT][-1], END))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP], END, box[RIGHT][-1], END))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][0], START, box[BOTTOM][0], START))
 
         if self.box_type == 1:
             sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][0], START))
 
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP], START, box[RIGHT][0], START, ORIGIN, START))
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][0], START, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -254,10 +247,10 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
 
-        box = [self.draw_edge_tabs(sketch, tabs_width_alias, 'tabWidth', 'offsetH', 'sideGap', False, False),
-               self.draw_edge_tabs(sketch, tabs_depth_alias, 'tabWidth', 'offsetV', 'sideGap', False, True),
+        box = [self.draw_edge_tabs(sketch, tabs_width_alias, 'tabWidth', 'offsetH', 'sideGap', True, False),
+               self.draw_edge_tabs(sketch, tabs_depth_alias, 'tabWidth', 'offsetV', 'endGap', True, True),
                self.draw_edge_tabs(sketch, tabs_width_alias, 'tabWidth', 'offsetH', 'sideGap', False, False),
-               self.draw_edge_tabs(sketch, tabs_depth_alias, 'tabWidth', 'offsetV', 'sideGap', False, True)]
+               self.draw_edge_tabs(sketch, tabs_depth_alias, 'tabWidth', 'offsetV', 'endGap', False, True)]
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
@@ -269,13 +262,10 @@ class Box:
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, depth))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
 
-        sketch.movePoint(box[TOP][0], START, upper_left)
-        sketch.movePoint(box[RIGHT][0], START, upper_right)
-        sketch.movePoint(box[LEFT][0], START, upper_left)
-        sketch.movePoint(box[BOTTOM][0], START, lower_left)
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, box[LEFT][0], START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT][0], START, box[TOP][-1], END))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][0], START, box[LEFT][-1], END))
+        self._constrain_sides(sketch, box, upper_left, upper_right, lower_left)
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, box[LEFT][0], START))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT][0], START, box[TOP][-1], END))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][0], START, box[LEFT][-1], END))
         # sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][-1], END))
 
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
@@ -358,7 +348,7 @@ class Box:
 
         return self.draw_slots(sketch, num_tabs, "sideGap")
 
-    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=True, is_vertical=False, start_offset=None):
+    def draw_edge_tabs(self, sketch, num_tabs_alias, width_alias, offset_alias, gap_alias, is_inset=True, is_vertical=False):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -369,10 +359,7 @@ class Box:
 
         lines = []
 
-        if not (start_offset is None):
-            start = start_offset
-        else:
-            start = App.Vector(0, 0)
+        start = App.Vector(0, 0)
 
         if is_vertical:
             thickness = sheet.thickness
@@ -444,7 +431,6 @@ class Box:
             sketch.addConstraint(Sketcher.Constraint('Equal', vertical_line_index, line_index))
 
         add_line(start, offset_length, line_index)
-        # add_line(start, offset_length, line_index)
 
         value = thickness
         if is_vertical:
@@ -476,8 +462,28 @@ class Box:
 
         return lines
 
+# Helper methods
     def get_sheet_expression_prefix(self):
         return '<<' + self.worksheet.Name + '>>.'
+
+    @staticmethod
+    def _add_sketch(sketch_name):
+        body = App.ActiveDocument.addObject('PartDesign::Body', sketch_name)
+        sketch = App.ActiveDocument.addObject('Sketcher::SketchObject', sketch_name + 'Sketch')
+        body.addObject(sketch)
+
+        return sketch
+
+    @staticmethod
+    def _constrain_sides(sketch, box, upper_left, upper_right, lower_left):
+        sketch.movePoint(box[TOP][0], START, upper_left)
+        sketch.movePoint(box[RIGHT][-1], END, upper_right)
+        sketch.movePoint(box[LEFT][-1], END, upper_left)
+        sketch.movePoint(box[BOTTOM][0], START, lower_left)
+
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, box[LEFT][-1], END))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][-1], END, box[RIGHT][-1], END))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][0], START, box[BOTTOM][0], START))
 
     @staticmethod
     def get_vectors(width, height, offset_h = 0, offset_v = 0):
