@@ -160,7 +160,7 @@ class Box:
         if self.dialog.chkBottom.isChecked():
             self.build_bottom()
 
-    def _build_side(self, sketch_name, width_alias, num_tabs_alias, gap_alias, tab_func):
+    def _build_side(self, sketch_name, width_alias, face, tab_func):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -177,17 +177,32 @@ class Box:
 
         if self.box_type == 0:
             actual_height = height + lid_thickness + bottom_thickness * 2
-            height_expression = '{0}height + {0}lidThickness + {0}bottomThickness * 2'.format(sheet_prefix)
+            height_expression = '-({0}height + {0}lidThickness + {0}bottomThickness * 2)'.format(sheet_prefix)
         elif self.box_type == 1:
             actual_height = height + lid_thickness + bottom_thickness
-            height_expression = '{0}height + {0}lidThickness + {0}bottomThickness'.format(sheet_prefix)
+            height_expression = '-({0}height + {0}lidThickness + {0}bottomThickness)'.format(sheet_prefix)
         else:
             actual_height = height + bottom_thickness
-            height_expression = '{0}height + {0}bottomThickness'.format(sheet_prefix)
+            height_expression = '-({0}height + {0}bottomThickness)'.format(sheet_prefix)
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(actual_width, actual_height)
 
         box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
+
+        lines = self.draw_edge_tabs(sketch, face, Direction.NS, True, upper_right)
+        box.append(lines)
+
+        if self.box_type != 1:
+            lines = self.draw_edge_tabs(sketch, face, Direction.EW, True, lower_left)
+        else:
+            lines = [sketch.addGeometry(Part.LineSegment(lower_left, lower_right), False)]
+
+        box.append(lines)
+
+        lines = self.draw_edge_tabs(sketch, face, Direction.SN, False, upper_left)
+        box.append(lines)
+
+        self._constrain_sides(sketch, box)
 
         sketch.addConstraint(Sketcher.Constraint('Horizontal', box[TOP][0]))
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], actual_width))
@@ -202,34 +217,15 @@ class Box:
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP][0], START, lid_thickness))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}lidThickness'.format(sheet_prefix))
 
-        lines = self.draw_edge_tabs(sketch, 'heightGap', Direction.NS, True)
-        box.append(lines)
-
-        if self.box_type != 1:
-            lines = self.draw_edge_tabs(sketch, gap_alias, Direction.EW, True)
-        else:
-            lines = [sketch.addGeometry(Part.LineSegment(lower_left, lower_right), False)]
-
-        box.append(lines)
-
-        lines = self.draw_edge_tabs(sketch, 'heightGap', Direction.SN, True)
-        box.append(lines)
-
-        if self.box_type != 1:
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[BOTTOM][0], START, box[BOTTOM][-1], END, actual_width))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, actual_height))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -actual_height))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, actual_height))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
-
-        self._constrain_sides(sketch, box)
 
         if self.box_type == 1:
-            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][0], START))
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, -actual_height))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
 
-        # sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][0], START, ORIGIN, START))
+        sketch.movePoint(box[TOP][0], START, App.Vector(-actual_width / 2, actual_height / 2, 0))
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][0], START, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -268,10 +264,10 @@ class Box:
         Gui.ActiveDocument.ActiveView.fitAll()
 
     def build_long_side(self):
-        self._build_side('BoxSide', 'width', 'numTabsLength', 'sideGap', self.draw_side_slots)
+        self._build_side('BoxSide', 'width', Face.SIDE, self.draw_side_slots)
 
     def build_short_side(self):
-        self._build_side('BoxEnd', 'depth', 'numTabsDepth', 'endGap', self.draw_end_slots)
+        self._build_side('BoxEnd', 'depth', Face.END, self.draw_end_slots)
 
     def draw_slot(self, sketch, width, height, expression_h, expression_v):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
