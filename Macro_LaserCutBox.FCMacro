@@ -345,15 +345,19 @@ class Box:
     def draw_edge_tabs(self, sketch, face, direction, is_inset, start=App.Vector(0, 0)):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
+        is_vertical = direction is Direction.NS or direction is Direction.SN
+        config = {'gap': 0, 'gap_expression': '', 'num_tabs': 0,
+                  'offset': 0, 'offset_expression': '',
+                  'thickness': 0, 'thickness_expression': '',
+                  'tab_width': 0, 'tab_width_expression': ''}
 
         lines = []
 
         def add_line(start_point, end_offset, previous):
-            end_point = start_point - end_offset if is_vertical else start_point + end_offset
+            end_point = start_point + end_offset
             new_line = Part.LineSegment(start_point, end_point)
             index = sketch.addGeometry(new_line, False)
 
-            # if is_vertical: self.log(new_line)
             if previous != -1:
                 sketch.addConstraint(Sketcher.Constraint('Coincident', previous, END, index, START))
                 sketch.addConstraint(Sketcher.Constraint('Perpendicular', previous, index))
@@ -362,52 +366,63 @@ class Box:
 
             return index, new_line
 
-        is_vertical = direction is Direction.NS or direction is Direction.SN
-        tab_width = sheet.tabWidth
-
         if is_vertical:
+            config['tab_width'] = -sheet.tabWidth
+            config['tab_width_expression'] = '-{0}tabWidth'.format(sheet_prefix)
+
             if face == Face.BOTTOM:
-                num_tabs = sheet.numTabsDepth
-                gap = sheet.endGap
-                gap_alias = 'endGap'
+                config['num_tabs'] = sheet.numTabsDepth
+                config['gap'] = -sheet.endGap
+                config['gap_expression'] = '-{0}endGap'.format(sheet_prefix)
             else:
-                num_tabs = sheet.numTabsHeight
-                gap = sheet.heightGap
-                gap_alias = 'heightGap'
+                config['num_tabs'] = sheet.numTabsHeight
+                config['gap'] = -sheet.heightGap
+                config['gap_expression'] = '-{0}heightGap'.format(sheet_prefix)
 
-            offset = sheet.offsetV
-            offset_alias = 'offsetV'
-            thickness = sheet.thickness
+            config['offset'] = -sheet.offsetV
+            config['offset_expression'] = '-{0}offsetV'.format(sheet_prefix)
+            config['thickness'] = sheet.thickness
+            config['thickness_expression'] = '{0}thickness'.format(sheet_prefix)
 
-            offset_length = App.Vector(0, offset)
-            gap_length = App.Vector(0, gap)
-            tab_length = App.Vector(0, tab_width)
-            thickness_length = App.Vector(thickness, 0)
+            if (is_inset and direction == Direction.NS) or (not is_inset and direction == Direction.SN):
+                config['thickness'] = -sheet.thickness
+                config['thickness_expression'] = '-{0}thickness'.format(sheet_prefix)
+
+            offset_length = App.Vector(0, config['offset'])
+            gap_length = App.Vector(0, config['gap'])
+            tab_length = App.Vector(0, config['tab_width'])
+            thickness_length = App.Vector(config['thickness'], 0)
+
+            # if direction == Direction.NS:
+            #     config['thickness'] = -config['thickness']
+            #     config['thickness_expression'] = '-' + config['thickness_expression']
         else:
+            config['tab_width'] = sheet.tabWidth
+            config['tab_width_expression'] = '{0}tabWidth'.format(sheet_prefix)
+
             if face == Face.SIDE or face == Face.BOTTOM:
-                num_tabs = sheet.numTabsLength
-                gap = sheet.sideGap
-                gap_alias = 'sideGap'
+                config['num_tabs'] = sheet.numTabsLength
+                config['gap'] = sheet.sideGap
+                config['gap_expression'] = '{0}sideGap'.format(sheet_prefix)
             else:
-                num_tabs = sheet.numTabsDepth
-                gap = sheet.endGap
-                gap_alias = 'endGap'
+                config['num_tabs'] = sheet.numTabsDepth
+                config['gap'] = sheet.endGap
+                config['gap_expression'] = '{0}endGap'.format(sheet_prefix)
 
-            offset = sheet.offsetH
-            offset_alias = 'offsetH'
-            thickness = sheet.bottomThickness
+            config['offset'] = sheet.offsetH
+            config['offset_expression'] = '{0}offsetH + {0}thickness'.format(sheet_prefix)
 
-            offset_length = App.Vector(offset, 0)
-            gap_length = App.Vector(gap, 0)
-            tab_length = App.Vector(tab_width, 0)
-            thickness_length = App.Vector(0, thickness)
+            if face != Face.BOTTOM and direction != Direction.WE:
+                config['thickness'] = sheet.thickness
+                config['thickness_expression'] = '{0}thickness'.format(sheet_prefix)
+            else:
+                config['thickness'] = sheet.bottomThickness
+                config['thickness_expression'] = '{0}bottomThickness'.format(sheet_prefix)
 
-        if is_inset:
-            if direction == Direction.NS or direction == Direction.WE:
-                thickness_length = -thickness_length
-        else:
-            if direction == Direction.SN or direction == Direction.EW:
-                thickness_length = -thickness_length
+            offset_length = App.Vector(config['offset'], 0)
+            gap_length = App.Vector(config['gap'], 0)
+            tab_length = App.Vector(config['tab_width'], 0)
+            thickness_length = App.Vector(0, config['thickness'])
 
         gap_line_index = -1
         first_tab_index = -1
@@ -416,7 +431,7 @@ class Box:
         line_index = -1
         line = Optional[Part.LineSegment]
 
-        for idx in range(0, num_tabs):
+        for idx in range(0, config['num_tabs']):
             if idx == 0:
                 line_index, line = add_line(start, offset_length, line_index)
 
@@ -430,6 +445,9 @@ class Box:
 
                 if gap_line_index == -1:
                     gap_line_index = line_index
+                    constraint_type = 'DistanceY' if is_vertical  else 'DistanceX'
+                    constraint = sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, config['gap']))
+                    sketch.setExpression('Constraints[{0}]'.format(str(constraint)), config['gap_expression'])
                 else:
                     sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
@@ -437,6 +455,9 @@ class Box:
 
             if idx == 0:
                 thickness_line_index = line_index
+                constraint_type = 'DistanceX' if is_vertical else 'DistanceY'
+                constraint = sketch.addConstraint(Sketcher.Constraint(constraint_type, thickness_line_index, config['thickness']))
+                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), config['thickness_expression'])
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
 
@@ -444,6 +465,9 @@ class Box:
 
             if idx == 0:
                 first_tab_index = line_index
+                constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
+                constraint = sketch.addConstraint(Sketcher.Constraint(constraint_type, first_tab_index, config['tab_width']))
+                sketch.setExpression('Constraints[{0}]'.format(str(constraint)), config['tab_width_expression'])
             else:
                 sketch.addConstraint(Sketcher.Constraint('Equal', first_tab_index, line_index))
 
@@ -452,48 +476,10 @@ class Box:
 
         line_index, line = add_line(line.EndPoint, offset_length, line_index)
 
-        tab_width_expression = '{0}tabWidth'.format(sheet_prefix)
-        gap_expression = '{0}{1}'.format(sheet_prefix, gap_alias)
-
-        if is_vertical:
-            thickness_expression = '{0}thickness'.format(sheet_prefix)
-            if direction == Direction.NS:
-                thickness = -thickness
-                thickness_expression = '-' + thickness_expression
-
-            offset_expression = '-{0}{1}'.format(sheet_prefix, offset_alias)
-            tab_width_expression = '-' + tab_width_expression
-            gap_expression = '-' + gap_expression
-
-            constraint_t = sketch.addConstraint(Sketcher.Constraint('DistanceX', thickness_line_index, thickness))
-            constraint_g = sketch.addConstraint(Sketcher.Constraint('DistanceY', gap_line_index, -gap))
-            constraint_h = sketch.addConstraint(Sketcher.Constraint('DistanceY', first_tab_index, -tab_width))
-
-            if direction == Direction.NS:
-                constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, -offset))
-            else:
-                constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceY', offset_line_index, -offset))
-        else:
-            thickness_expression = '{0}bottomThickness'.format(sheet_prefix)
-            if direction == Direction.EW:
-                thickness = -thickness
-                thickness_expression = '-' + thickness_expression
-
-            offset_expression = '{0}{1} + {0}thickness'.format(sheet_prefix, offset_alias)
-
-            constraint_t = sketch.addConstraint(Sketcher.Constraint('DistanceY', thickness_line_index, thickness))
-            constraint_g = sketch.addConstraint(Sketcher.Constraint('DistanceX', gap_line_index, gap))
-            constraint_h = sketch.addConstraint(Sketcher.Constraint('DistanceX', first_tab_index, tab_width))
-
-            if direction == Direction.EW:
-                constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceX', line_index, offset))
-            else:
-                constraint_d = sketch.addConstraint(Sketcher.Constraint('DistanceX', offset_line_index, offset))
-
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_d)), offset_expression)
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_g)), gap_expression)
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_t)), thickness_expression)
-        sketch.setExpression('Constraints[{0}]'.format(str(constraint_h)), tab_width_expression)
+        index = line_index if direction == Direction.NS or direction == Direction.EW else offset_line_index
+        constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
+        constraint = sketch.addConstraint(Sketcher.Constraint(constraint_type, index, config['offset']))
+        sketch.setExpression('Constraints[{0}]'.format(str(constraint)), config['offset_expression'])
 
         return lines
 
