@@ -224,7 +224,7 @@ class Box:
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, actual_height))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
 
-        self._constrain_sides(sketch, box, lower_left, upper_left, lower_right, upper_right)
+        self._constrain_sides(sketch, box)
 
         if self.box_type == 1:
             sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][0], START))
@@ -249,24 +249,20 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
 
-        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False)]
+        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False, upper_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False, upper_right),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False, lower_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False, upper_left)]
 
-        self._constrain_sides(sketch, box, lower_left, upper_left, lower_right, upper_right)
+        self._constrain_sides(sketch, box)
 
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[BOTTOM][0], START, box[BOTTOM][-1], END, width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, depth))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, depth))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][-1], END, box[LEFT][0], START, depth))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
 
-        # sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
+        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -346,7 +342,7 @@ class Box:
 
         return self.draw_slots(sketch, num_tabs, "sideGap")
 
-    def draw_edge_tabs(self, sketch, face, direction, is_inset):
+    def draw_edge_tabs(self, sketch, face, direction, is_inset, start=App.Vector(0, 0)):
         sheet = self.worksheet
         sheet_prefix = self.get_sheet_expression_prefix()
 
@@ -366,7 +362,6 @@ class Box:
 
             return index, new_line
 
-        start = App.Vector(0, 0)
         is_vertical = direction is Direction.NS or direction is Direction.SN
         tab_width = sheet.tabWidth
 
@@ -515,42 +510,21 @@ class Box:
         return sketch
 
     @staticmethod
-    def _constrain_sides(sketch, box, lower_left, upper_left, lower_right, upper_right):
-        h_len = Box.get_line_length(box[TOP], False)
-        v_len = Box.get_line_length(box[LEFT], True)
-
-        top_cons = sketch.addConstraint(Sketcher.Constraint("DistanceX"), box[TOP][0], START, box[TOP][-1], END, h_len)
-        bottom_cons = sketch.addConstraint(Sketcher.Constraint("DistanceX"), box[BOTTOM][0], START, box[BOTTOM][-1], END, h_len)
-        left_cons = sketch.addConstraint(Sketcher.Constraint("DistanceX"), box[LEFT][0], START, box[LEFT][-1], END, v_len)
-        right_cons = sketch.addConstraint(Sketcher.Constraint("DistanceX"), box[RIGHT][0], START, box[RIGHT][-1], END, v_len)
-
-        sketch.movePoint(box[TOP][0], START, upper_left)
-        sketch.movePoint(box[TOP][-1], END, upper_right)
-        sketch.movePoint(box[BOTTOM][-1], END, lower_right)
-        sketch.movePoint(box[LEFT][0], START, upper_left)
-        sketch.movePoint(box[LEFT][-1], END, lower_left)
-        sketch.movePoint(box[RIGHT][-1], END, lower_right)
-
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, box[LEFT][0], START))
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][-1], END))
-
-        # sketch.movePoint(box[TOP][0], START, upper_left)
-        # sketch.movePoint(box[LEFT][0], START, upper_left)
-        # sketch.movePoint(box[BOTTOM][-1], END, lower_right)
-        # sketch.movePoint(box[RIGHT][-1], END, lower_right)
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][-1], END, box[RIGHT][0], START))
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][0], START, box[BOTTOM][0], START))
-        sketch.deleteConstraint(top_cons)
-        sketch.deleteConstraint(bottom_cons)
-        sketch.deleteConstraint(left_cons)
-        sketch.deleteConstraint(right_cons)
+    def _constrain_sides(sketch, box):
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, box[LEFT][0], START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, box[RIGHT][-1], END))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][-1], END, box[RIGHT][0], START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][0], START, box[LEFT][-1], END))
 
     @staticmethod
-    def get_line_length(line, is_vertical):
+    def get_line_length(sketch, line_array, is_vertical):
+        start_line = sketch.Geometry[line_array[0]]
+        end_line = sketch.Geometry[line_array[-1]]
+
         if is_vertical:
-            length = line[-1].EndPoint.y - line[0].StartPoint.y
+            length = end_line.EndPoint.y - start_line.StartPoint.y
         else:
-            length = line[-1].EndPoint.x - line[0].StartPoint.x
+            length = end_line.EndPoint.x - start_line.StartPoint.x
 
         return length
 
