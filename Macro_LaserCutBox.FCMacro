@@ -240,12 +240,11 @@ class Box:
 
         sketch = self._add_sketch('BoxBottom')
 
-        width_alias = 'width'
         width = sheet.width + sheet.thickness
-        width_expression = '{0}{1} + {0}thickness'.format(sheet_prefix, width_alias)
-        depth_alias = 'depth'
+        width_expression = '{0}width + {0}thickness'.format(sheet_prefix)
+
         depth = sheet.depth + sheet.thickness
-        depth_expression = '{0}{1} + {0}thickness'.format(sheet_prefix, depth_alias)
+        depth_expression = '-({0}depth + {0}thickness)'.format(sheet_prefix)
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
 
@@ -259,9 +258,10 @@ class Box:
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][-1], END, box[LEFT][0], START, depth))
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -depth))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
 
+        sketch.movePoint(box[TOP][0], START, App.Vector(-width / 2, depth / 2, 0))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
@@ -392,10 +392,6 @@ class Box:
             gap_length = App.Vector(0, config['gap'])
             tab_length = App.Vector(0, config['tab_width'])
             thickness_length = App.Vector(config['thickness'], 0)
-
-            # if direction == Direction.NS:
-            #     config['thickness'] = -config['thickness']
-            #     config['thickness_expression'] = '-' + config['thickness_expression']
         else:
             config['tab_width'] = sheet.tabWidth
             config['tab_width_expression'] = '{0}tabWidth'.format(sheet_prefix)
@@ -418,6 +414,10 @@ class Box:
             else:
                 config['thickness'] = sheet.bottomThickness
                 config['thickness_expression'] = '{0}bottomThickness'.format(sheet_prefix)
+
+            if (is_inset and direction == Direction.WE) or (not is_inset and direction == Direction.EW):
+                config['thickness'] = -sheet.bottomThickness
+                config['thickness_expression'] = '-{0}bottomThickness'.format(sheet_prefix)
 
             offset_length = App.Vector(config['offset'], 0)
             gap_length = App.Vector(config['gap'], 0)
