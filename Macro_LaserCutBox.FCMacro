@@ -215,17 +215,18 @@ class Box:
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, -actual_height))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
 
-        if self.box_type != 2:
-            tab = tab_func(sketch)[-1]
-
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', tab[TOP], END, box[TOP][-1], END, offset))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
-
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP][0], START, lid_thickness))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}lidThickness'.format(sheet_prefix))
-
         sketch.movePoint(box[TOP][0], START, App.Vector(-actual_width / 2, actual_height / 2, 0))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][0], START, ORIGIN, START))
+        App.ActiveDocument.recompute(None, True, True)
+
+        if self.box_type != 2:
+            tab = tab_func(sketch)
+
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, tab[TOP][0], START, offset))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}offsetH'.format(sheet_prefix))
+
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP][0], START, box[TOP][0], START, lid_thickness))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}lidThickness'.format(sheet_prefix))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -381,8 +382,8 @@ class Box:
             config['thickness_expression'] = '{0}thickness'.format(sheet_prefix)
 
             if (is_inset and direction == Direction.NS) or (not is_inset and direction == Direction.SN):
-                config['thickness'] = -sheet.thickness
-                config['thickness_expression'] = '-{0}thickness'.format(sheet_prefix)
+                config['thickness'] = -config['thickness']
+                config['thickness_expression'] = '-' + config['thickness_expression']
 
             offset_length = App.Vector(0, config['offset'])
             gap_length = App.Vector(0, config['gap'])
@@ -404,7 +405,7 @@ class Box:
             config['offset'] = sheet.offsetH
             config['offset_expression'] = '{0}offsetH + {0}thickness'.format(sheet_prefix)
 
-            if face != Face.BOTTOM and direction != Direction.WE:
+            if face is Face.BOTTOM:
                 config['thickness'] = sheet.thickness
                 config['thickness_expression'] = '{0}thickness'.format(sheet_prefix)
             else:
@@ -412,8 +413,8 @@ class Box:
                 config['thickness_expression'] = '{0}bottomThickness'.format(sheet_prefix)
 
             if (is_inset and direction == Direction.WE) or (not is_inset and direction == Direction.EW):
-                config['thickness'] = -sheet.bottomThickness
-                config['thickness_expression'] = '-{0}bottomThickness'.format(sheet_prefix)
+                config['thickness'] = -config['thickness']
+                config['thickness_expression'] = '-' + config['thickness_expression']
 
             offset_length = App.Vector(config['offset'], 0)
             gap_length = App.Vector(config['gap'], 0)
