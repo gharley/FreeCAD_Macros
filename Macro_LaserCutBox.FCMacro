@@ -208,6 +208,13 @@ class Box:
         constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], actual_width))
         sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
 
+        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -actual_height))
+        sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
+
+        if self.box_type == 1:
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, -actual_height))
+            sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
+
         if self.box_type != 2:
             tab = tab_func(sketch)[-1]
 
@@ -216,13 +223,6 @@ class Box:
 
             constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP], START, box[TOP][0], START, lid_thickness))
             sketch.setExpression("Constraints[{0}]".format(str(constraint)), '{0}lidThickness'.format(sheet_prefix))
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -actual_height))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
-
-        if self.box_type == 1:
-            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, -actual_height))
-            sketch.setExpression("Constraints[{0}]".format(str(constraint)), height_expression)
 
         sketch.movePoint(box[TOP][0], START, App.Vector(-actual_width / 2, actual_height / 2, 0))
         sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][0], START, ORIGIN, START))
