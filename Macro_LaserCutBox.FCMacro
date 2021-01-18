@@ -313,7 +313,8 @@ class Box:
             if idx == 0:
                 first = tab
             else:
-                constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
+                constraint = sketch.addConstraint(
+                    Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
                 sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_gap.format(idx))
 
                 sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
@@ -446,7 +447,7 @@ class Box:
 
                 if gap_line_index == -1:
                     gap_line_index = line_index
-                    constraint_type = 'DistanceY' if is_vertical  else 'DistanceX'
+                    constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
                     constraint = sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, config['gap']))
                     sketch.setExpression('Constraints[{0}]'.format(str(constraint)), config['gap_expression'])
                 else:
@@ -484,7 +485,7 @@ class Box:
 
         return lines
 
-# Helper methods
+    # Helper methods
     def get_sheet_expression_prefix(self):
         return '<<' + self.worksheet.Name + '>>.'
 
