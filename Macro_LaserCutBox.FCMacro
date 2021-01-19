@@ -9,7 +9,7 @@ from enum import Enum
 from math import floor
 from typing import Optional
 
-from PySide import QtCore, QtGui
+from PySide import QtCore, QtGui, QtSvg
 from FreeCAD import Gui
 import Part, PartDesign, Sketcher
 
@@ -53,31 +53,44 @@ class Box:
 
         self.dialog = Optional[QtGui.QWidget]
         self.image = Optional[QtGui.QLabel]
+        self.widget = Optional[QtSvg.QSvgWidget]
+
         self.worksheet = None
         self.box_type = 0
 
         self.init_dialog()
 
         self.dialog.show()
+        self.update_image(0)
         self.dialog.exec_()
+
+    def update_image(self, box_type):
+        if not isinstance(self.widget, QtSvg.QSvgWidget):
+            self.widget = QtSvg.QSvgWidget(self.dialog)
+            self.widget.setGeometry(self.image.geometry())
+
+        if box_type == 0:
+            self.widget.renderer().load(self.macro_dir + 'end_all.svg')
+        elif box_type == 1:
+            self.widget.renderer().load(self.macro_dir + 'end_slots.svg')
+        else:
+            self.widget.renderer().load(self.macro_dir + 'end_edge.svg')
+
+        self.widget.show()
 
     def init_dialog(self):
         self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Laser cut box")
-
         self.image = self.dialog.findChild(QtGui.QLabel, 'image')
-        # pixmap = QtGui.QPixmap(":/images/end_all.png")
-        pixmap = QtGui.QPixmap(self.macro_dir + "end_all.png")
-        # pixmap = QtGui.QPixmap(':/images/end_all.png')
-        self.image.setPixmap(pixmap.scaledToHeight(self.image.height()))
-        # self.image.setText('pixmap')
-        # App.Console.PrintMessage(QtCore.QFile.exists(self.macro_dir + "end_all.png"))
+
+        # App.Console.PrintMessage(QtCore.QFile.exists(":end_all.svg"))
         # App.Console.PrintMessage(pixmap.isNull())
 
-        QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL("accepted()"), self.build_geometry)
+        QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL('accepted()'), self.build_geometry)
+        QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self.update_image)
 
     def init_sheet(self):
-        self.worksheet = App.ActiveDocument.addObject("Spreadsheet::Sheet", "Parameters")
+        self.worksheet = App.ActiveDocument.addObject('Spreadsheet::Sheet', 'Parameters')
         set_cell = self.worksheet.set
 
         def column_a(idx):
