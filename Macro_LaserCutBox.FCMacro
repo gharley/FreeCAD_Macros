@@ -58,6 +58,8 @@ class Box:
         self.worksheet = None
         self.box_type = 0
 
+        # self.log(QtCore.QFile.exists(":/images/end_all.svg"))
+
         self.init_dialog()
 
         self.dialog.show()
@@ -82,9 +84,6 @@ class Box:
         self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Laser cut box")
         self.image = self.dialog.findChild(QtGui.QLabel, 'image')
-
-        # App.Console.PrintMessage(QtCore.QFile.exists(":end_all.svg"))
-        # App.Console.PrintMessage(pixmap.isNull())
 
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL('accepted()'), self.build_geometry)
         QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self.update_image)
