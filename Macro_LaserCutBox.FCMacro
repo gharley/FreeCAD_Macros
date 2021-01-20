@@ -6,7 +6,6 @@ __date__ = "12/31/20"
 __Comment__ = "This macro creates a sketch of a laser cut box which can then be save to a DXF file."
 
 from enum import Enum
-from math import floor
 from typing import Optional
 
 from PySide import QtCore, QtGui, QtSvg
@@ -57,16 +56,17 @@ class Box:
 
         self.worksheet = None
         self.box_type = 0
+        self.num_tabs = {'numTabsLength': 0, 'numTabsDepth': 0, 'numTabsHeight': 0}
 
         # self.log(QtCore.QFile.exists(":/images/end_all.svg"))
 
-        self.init_dialog()
+        self._init_dialog()
 
         self.dialog.show()
-        self.update_image(0)
+        self._update_image(0)
         self.dialog.exec_()
 
-    def update_image(self, box_type):
+    def _update_image(self, box_type):
         if not isinstance(self.widget, QtSvg.QSvgWidget):
             self.widget = QtSvg.QSvgWidget(self.dialog)
             self.widget.setGeometry(self.image.geometry())
@@ -80,15 +80,15 @@ class Box:
 
         self.widget.show()
 
-    def init_dialog(self):
+    def _init_dialog(self):
         self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Laser cut box")
         self.image = self.dialog.findChild(QtGui.QLabel, 'image')
 
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL('accepted()'), self.build_geometry)
-        QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self.update_image)
+        QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self._update_image)
 
-    def init_sheet(self):
+    def _init_sheet(self):
         self.worksheet = App.ActiveDocument.addObject('Spreadsheet::Sheet', 'Parameters')
         set_cell = self.worksheet.set
 
@@ -108,18 +108,29 @@ class Box:
 
             buddy = obj.buddy()
             if buddy is not None:
+                buddy_name = buddy.objectName()
+
                 if isinstance(buddy, QtGui.QComboBox):
                     self.box_type = buddy.currentIndex()
                     index -= 1
                 else:
-                    set_cell(col_a, obj.text())
-                    set_cell(col_b, buddy.text())
-                    self.worksheet.setAlias(col_b, buddy.objectName())
+                    buddy_value = buddy.text()
+
+                    if self.num_tabs.get(buddy_name) is not None:
+                        self.num_tabs[buddy_name] = buddy_value
+                        index -= 1
+                    else:
+                        set_cell(col_a, obj.text())
+                        set_cell(col_b, buddy_value)
+                        self.worksheet.setAlias(col_b, buddy_name)
             else:
-                self.worksheet.setStyle(col_a, 'bold')
-                self.worksheet.setAlignment(col_a, 'center|vcenter')
-                self.worksheet.mergeCells(col_a + ':' + col_b)
-                set_cell(col_a, obj.text())
+                if obj.statusTip() == 'skip':
+                    index -= 1
+                else:
+                    self.worksheet.setStyle(col_a, 'bold')
+                    self.worksheet.setAlignment(col_a, 'center|vcenter')
+                    self.worksheet.mergeCells(col_a + ':' + col_b)
+                    set_cell(col_a, obj.text())
 
         App.ActiveDocument.recompute(None, True, True)
 
@@ -129,7 +140,6 @@ class Box:
         if self.worksheet.lidThickness == 0:
             self.worksheet.set(self.worksheet.getCellFromAlias('lidThickness'), str(self.worksheet.thickness))
 
-        index += 1
         col_a = column_a(index)
         self.worksheet.setStyle(col_a, 'bold')
         self.worksheet.setAlignment(col_a, 'center|vcenter')
@@ -143,25 +153,31 @@ class Box:
             self.worksheet.setAlias(_col_b, alias)
 
         index += 1
-        set_calc('Side tab gap', 'sideGap', '=(width - offsetH * 2 - tabWidth * numTabsLength) / (numTabsLength - 1)')
+        num_tabs = int(self.num_tabs['numTabsLength'])
+        formula = '=width - offsetH * 2 - tabWidth' if num_tabs == 1 else '=(width - offsetH * 2 - tabWidth * {0}) / ({0} - 1)'.format(num_tabs)
+        set_calc('Side tab gap', 'sideGap', formula)
 
         index += 1
-        set_calc('End tab gap', 'endGap', '=(depth - offsetH * 2 - tabWidth * numTabsDepth) / (numTabsDepth - 1)')
+        num_tabs = int(self.num_tabs['numTabsDepth'])
+        formula = '=depth - offsetH * 2 - tabWidth' if num_tabs == 1 else '=(depth - offsetH * 2 - tabWidth * {0}) / ({0} - 1)'.format(num_tabs)
+        set_calc('End tab gap', 'endGap', formula)
 
         index += 1
+        num_tabs = int(self.num_tabs['numTabsHeight'])
+        formula = '=({0}) - offsetV * 2 - tabWidth' if num_tabs == 1 else '=(({0}) - offsetV * 2 - tabWidth * {1}) / ({1} - 1)'.format('{0}',
+                                                                                                                                       num_tabs)
 
-        gap_mask = '=(({0}) - offsetV * 2 - tabWidth * numTabsHeight) / (numTabsHeight - 1)'
         if self.box_type == 0:
-            set_calc('Height tab gap', 'heightGap', gap_mask.format('height + lidThickness + bottomThickness * 2'))
+            set_calc('Height tab gap', 'heightGap', formula.format('height + lidThickness + bottomThickness * 2'))
         elif self.box_type == 1:
-            set_calc('Height tab gap', 'heightGap', gap_mask.format('height + lidThickness + bottomThickness'))
+            set_calc('Height tab gap', 'heightGap', formula.format('height + lidThickness + bottomThickness'))
         else:
-            set_calc('Height tab gap', 'heightGap', gap_mask.format('height + bottomThickness'))
+            set_calc('Height tab gap', 'heightGap', formula.format('height + bottomThickness'))
 
         App.ActiveDocument.recompute(None, True, True)
 
     def build_geometry(self):
-        self.init_sheet()
+        self._init_sheet()
 
         if self.dialog.chkSide.isChecked():
             self.build_long_side()
@@ -342,14 +358,12 @@ class Box:
         return self._draw_slots(sketch, num_tabs, gap, '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
 
     def draw_end_slots(self, sketch):
-        sheet = self.worksheet
-        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsDepth')))
+        num_tabs = int(self.num_tabs['numTabsDepth'])
 
         return self.draw_slots(sketch, num_tabs, "endGap")
 
     def draw_side_slots(self, sketch):
-        sheet = self.worksheet
-        num_tabs = floor(sheet.get(sheet.getCellFromAlias('numTabsLength')))
+        num_tabs = int(self.num_tabs['numTabsLength'])
 
         return self.draw_slots(sketch, num_tabs, "sideGap")
 
@@ -382,13 +396,13 @@ class Box:
             config['tab_width_expression'] = '-{0}tabWidth'.format(sheet_prefix)
 
             if face is Face.BOTTOM:
-                config['num_tabs'] = sheet.numTabsDepth
+                config['num_tabs'] = self.num_tabs['numTabsDepth']
                 config['gap'] = -sheet.endGap
                 config['gap_expression'] = '-{0}endGap'.format(sheet_prefix)
                 config['offset'] = -sheet.offsetH
                 config['offset_expression'] = '-{0}offsetH'.format(sheet_prefix)
             else:
-                config['num_tabs'] = sheet.numTabsHeight
+                config['num_tabs'] = self.num_tabs['numTabsHeight']
                 config['gap'] = -sheet.heightGap
                 config['gap_expression'] = '-{0}heightGap'.format(sheet_prefix)
                 config['offset'] = -sheet.offsetV
@@ -410,11 +424,11 @@ class Box:
             config['tab_width_expression'] = '{0}tabWidth'.format(sheet_prefix)
 
             if face is Face.SIDE or face is Face.BOTTOM:
-                config['num_tabs'] = sheet.numTabsLength
+                config['num_tabs'] = self.num_tabs['numTabsLength']
                 config['gap'] = sheet.sideGap
                 config['gap_expression'] = '{0}sideGap'.format(sheet_prefix)
             else:
-                config['num_tabs'] = sheet.numTabsDepth
+                config['num_tabs'] = self.num_tabs['numTabsDepth']
                 config['gap'] = sheet.endGap
                 config['gap_expression'] = '{0}endGap'.format(sheet_prefix)
 
@@ -445,7 +459,7 @@ class Box:
         line_index = -1
         line = Optional[Part.LineSegment]
 
-        for idx in range(0, config['num_tabs']):
+        for idx in range(0, int(config['num_tabs'])):
             if idx == 0:
                 line_index, line = add_line(start, offset_length, line_index)
 

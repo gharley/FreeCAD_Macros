@@ -37,7 +37,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>301</width>
+     <width>321</width>
      <height>444</height>
     </rect>
    </property>
@@ -408,6 +408,9 @@
     </item>
     <item>
      <widget class="QLabel" name="label_14">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="font">
        <font>
         <pointsize>12</pointsize>
@@ -415,8 +418,11 @@
         <bold>true</bold>
        </font>
       </property>
+      <property name="statusTip">
+       <string>skip</string>
+      </property>
       <property name="text">
-       <string>Don't Change These in Spreadsheet</string>
+       <string>Can't Be Changed in Spreadsheet</string>
       </property>
      </widget>
     </item>
