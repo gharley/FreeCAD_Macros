@@ -3,7 +3,7 @@ __author__ = "Greg Harley"
 __version__ = "01.00"
 __date__ = "1/21/21"
 
-__Comment__ = "This macro creates a sketch of a living hinge box which can then be save to a DXF file."
+__Comment__ = "This macro creates a sketch of a living hinge box which can then be saved to a DXF file."
 
 from enum import Enum
 from typing import Optional
@@ -49,16 +49,16 @@ class Hinge:
         self.sketch = sketch
         self.height = height
 
-        if kerf is None:
-            kerf = 0.2
-        self.kerf = kerf
-
         if start_point is None:
             start_point = App.Vector(0, height)
         self.start_point = start_point
 
+        if kerf is None:
+            kerf = 0.2
+        self.kerf = kerf
+
         self.num_segments = self.get_num_segments(thickness, radius, self.kerf)
-        self.bounds = {'upper_left': start_point, 'upper_right': None, 'lower_right': None, 'lower_left': None}
+        self.bounds = {'upper_left': (start_point, 0), 'upper_right': None, 'lower_right': None, 'lower_left': None}
 
         self.short_length = App.Vector(0, -ceil(height / 3))
         self.short_line_index = -1
@@ -70,9 +70,26 @@ class Hinge:
         self.gap_length_h = App.Vector(self.gap_size, 0)
         self.gap_h_line_index = -1
 
-        self.outer_lines = []
-        self.inner_lines = []
-        self.width = self.num_segments * (self.gap_size + self.kerf)
+        self._outer_lines = []
+        self._inner_lines = []
+
+    @property
+    def inner_lines(self): return self._inner_lines
+
+    @property
+    def outer_lines(self): return self._outer_lines
+
+    @property
+    def length(self): return self.num_segments * self.gap_size
+
+    @property
+    def width(self): return self.num_segments * (self.gap_size + self.kerf)
+
+    @property
+    def start_point(self): return self._start_point
+
+    @start_point.setter
+    def start_point(self, value): self._start_point = value
 
     def add_line(self, start_point, end_offset, lines):
         end_point = start_point + end_offset
@@ -87,9 +104,9 @@ class Hinge:
         return index, new_line
 
     def add_short_lines(self):
-        start_point = self.start_point if len(self.outer_lines) == 0 else self.sketch.Geometry[self.outer_lines[-1]].EndPoint
+        start_point = self.start_point if len(self._outer_lines) == 0 else self.sketch.Geometry[self._outer_lines[-1]].EndPoint
 
-        index, line = self.add_line(start_point, self.short_length, self.outer_lines)
+        index, line = self.add_line(start_point, self.short_length, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
 
         if self.short_line_index == -1:
@@ -99,7 +116,7 @@ class Hinge:
         else:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
-        index, line = self.add_line(line.EndPoint, self.gap_length_v, self.outer_lines)
+        index, line = self.add_line(line.EndPoint, self.gap_length_v, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
         self.sketch.toggleConstruction(index)
 
@@ -110,12 +127,12 @@ class Hinge:
         else:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_v_line_index, index))
 
-        index, line = self.add_line(line.EndPoint, self.short_length, self.outer_lines)
+        index, line = self.add_line(line.EndPoint, self.short_length, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
 
         self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
-        index, line = self.add_line(line.EndPoint, self.gap_length_h, self.outer_lines)
+        index, line = self.add_line(line.EndPoint, self.gap_length_h, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
         self.sketch.toggleConstruction(index)
 
@@ -129,11 +146,11 @@ class Hinge:
         for idx in range(0, self.num_segments):
             self.add_short_lines()
             if idx == 0:
-                self.bounds['lower_left'] = self.get_line_from_index(self.outer_lines[2]).EndPoint
+                self.bounds['lower_left'] = (self.get_line_from_index(self._outer_lines[2]).EndPoint, self._outer_lines[2])
 
-            line_index, inner_line = self.add_line(self.sketch.Geometry[self.outer_lines[-1]].EndPoint - (self.gap_length_h / 2) - (self.short_length / 2),
+            line_index, inner_line = self.add_line(self.sketch.Geometry[self._outer_lines[-1]].EndPoint - (self.gap_length_h / 2) - (self.short_length / 2),
                                                    self.long_length,
-                                                   self.inner_lines)
+                                                   self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
 
             if idx == 0:
@@ -143,7 +160,7 @@ class Hinge:
             else:
                 self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
 
-            line_index, inner_line = self.add_line(inner_line.EndPoint, self.gap_length_h, self.inner_lines)
+            line_index, inner_line = self.add_line(inner_line.EndPoint, self.gap_length_h, self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, line_index))
             self.sketch.toggleConstruction(line_index)
@@ -154,15 +171,15 @@ class Hinge:
 
         self.add_short_lines()
 
-        line1 = self.get_line_from_index(self.outer_lines[-2])
-        line2 = self.get_line_from_index(self.outer_lines[-4])
+        line1 = (self.get_line_from_index(self._outer_lines[-2]).EndPoint, self._outer_lines[-2])
+        line2 = (self.get_line_from_index(self._outer_lines[-4]).StartPoint, self._outer_lines[-4])
 
-        if line1.StartPoint.y > line2.StartPoint.y:
-            self.bounds['upper_right'] = line1.EndPoint
-            self.bounds['lower_right'] = line2.StartPoint
+        if line1[0].y > line2[0].y:
+            self.bounds['upper_right'] = line1
+            self.bounds['lower_right'] = line2
         else:
-            self.bounds['upper_right'] = line2.StartPoint
-            self.bounds['lower_right'] = line1.EndPoint
+            self.bounds['upper_right'] = line2
+            self.bounds['lower_right'] = line1
 
     def get_line_from_index(self, index):
         return self.sketch.Geometry[index]
@@ -347,8 +364,11 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(actual_width, actual_height)
         first = Hinge(sketch, actual_height, thickness, sheet.radius)
+        first.start_point = upper_left + App.Vector((width - first.length) / 2, 0)
         first.draw()
-        self.log(first.bounds)
+        second = Hinge(sketch, actual_height, thickness, sheet.radius, first.bounds['upper_right'][0] + App.Vector(width - first.length, 0))
+        second.draw()
+        self.log(second.bounds)
         #
         # box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
         #
