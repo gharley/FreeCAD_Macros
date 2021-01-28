@@ -57,16 +57,16 @@ class Hinge:
             kerf = 0.2
         self.kerf = kerf
 
-        self.num_segments = self.get_num_segments(thickness, radius, self.kerf)
         self.bounds = {'upper_left': (start_point, 0), 'upper_right': None, 'lower_right': None, 'lower_left': None}
 
-        self.short_length = App.Vector(0, -ceil(height / 3))
+        self.short_length = App.Vector(0, -((height - thickness) / 2))
         self.short_line_index = -1
-        self.long_length = App.Vector(0, floor((height / 3) * 2))
+        self.long_length = App.Vector(0, (height - thickness * 2))
         self.long_line_index = -1
-        self.gap_length_v = App.Vector(0, -(self.height - abs(self.short_length.y * 2)))
+        self.gap_length_v = App.Vector(0, -(thickness * 2))
         self.gap_v_line_index = -1
-        self.gap_size = 3
+        self.gap_size = min(max(thickness / 2, 3), 5)
+        self.num_segments = self.get_num_segments(self.gap_size, radius, self.kerf)
         self.gap_length_h = App.Vector(self.gap_size, 0)
         self.gap_h_line_index = -1
 
@@ -148,14 +148,13 @@ class Hinge:
             if idx == 0:
                 self.bounds['lower_left'] = (self.get_line_from_index(self._outer_lines[2]).EndPoint, self._outer_lines[2])
 
-            line_index, inner_line = self.add_line(self.sketch.Geometry[self._outer_lines[-1]].EndPoint - (self.gap_length_h / 2) - (self.short_length / 2),
-                                                   self.long_length,
-                                                   self._inner_lines)
+            line_index, inner_line = self.add_line(self.sketch.Geometry[self._outer_lines[-1]].EndPoint - (self.gap_length_v / 2), self.long_length, self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
 
             if idx == 0:
                 self.long_line_index = line_index
                 self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, self.long_length.y))
+                self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.short_line_index, START, line_index, START, abs(self.get_line_from_index(self.short_line_index).StartPoint.y - inner_line.StartPoint.y)))
                 self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.short_line_index, START, line_index, START, self.gap_size / 2))
             else:
                 self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
@@ -186,10 +185,12 @@ class Hinge:
 
     @staticmethod
     def get_num_segments(thickness, radius, kerf):
-        rads = radians(radius)
-        denominator = (pi / 4 - (acos((kerf + thickness) / ((sqrt(pow(thickness, 2) / 2)) * 2))))
-
-        return ceil(rads / denominator)
+        length = radius * 2 * pi / 4
+        return ceil(length / (thickness - kerf))
+        # rads = radians(radius)
+        # denominator = (pi / 4 - (acos((kerf + thickness) / ((sqrt(pow(thickness, 2) / 2)) * 2))))
+        #
+        # return ceil(rads / denominator)
 
 
 class Box:
@@ -366,9 +367,13 @@ class Box:
         first = Hinge(sketch, actual_height, thickness, sheet.radius)
         first.start_point = upper_left + App.Vector((width - first.length) / 2, 0)
         first.draw()
-        second = Hinge(sketch, actual_height, thickness, sheet.radius, first.bounds['upper_right'][0] + App.Vector(width - first.length, 0))
+        first_last = first.bounds['upper_right']
+        spacing = App.Vector(width - first.length, 0)
+        second = Hinge(sketch, actual_height, thickness, sheet.radius, first_last[0] + spacing)
+        # self.log(first.bounds['upper_right'][0] + App.Vector(width - first.length, 0))
         second.draw()
-        self.log(second.bounds)
+        App.ActiveDocument.recompute(None, True, True)
+        # sketch.addConstraint(Sketcher.Constraint('DistanceX', first_last[1], START, second.bounds['upper_left'][1], START, spacing.x))
         #
         # box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
         #
