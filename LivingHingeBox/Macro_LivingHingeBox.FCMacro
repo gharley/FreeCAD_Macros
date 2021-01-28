@@ -59,15 +59,17 @@ class Hinge:
 
         self.bounds = {'upper_left': (start_point, 0), 'upper_right': None, 'lower_right': None, 'lower_left': None}
 
-        self.short_length = App.Vector(0, -((height - thickness) / 2))
-        self.short_line_index = -1
         self.long_length = App.Vector(0, (height - thickness * 2))
         self.long_line_index = -1
+        self.short_length = -self.long_length / 2
+        self.short_line_index = -1
         self.gap_length_v = App.Vector(0, -(thickness * 2))
         self.gap_v_line_index = -1
         self.gap_size, self.num_segments = self.get_num_segments(radius, self.kerf)
         self.gap_length_h = App.Vector(self.gap_size, 0)
         self.gap_h_line_index = -1
+        self.top_line_index = -1
+        self.offset_line_index = -1
 
         self._outer_lines = []
         self._inner_lines = []
@@ -79,7 +81,7 @@ class Hinge:
     def outer_lines(self): return self._outer_lines
 
     @property
-    def length(self): return self.num_segments * self.gap_size
+    def length(self): return self.num_segments * (self.gap_size - self.kerf * 2)
 
     @property
     def start_point(self): return self._start_point
@@ -128,6 +130,9 @@ class Hinge:
 
         self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
+        # if self.short_length.y > 0:
+        #     self.sketch.addConstraint(Sketcher.Constraint('PointOnObject', index, END, self.top_line_index))
+
         index, line = self.add_line(line.EndPoint, self.gap_length_h, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
         self.sketch.toggleConstruction(index)
@@ -139,17 +144,30 @@ class Hinge:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, index))
 
     def draw(self):
+        self.top_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point, self.gap_length_h), False)
+        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
+        self.sketch.toggleConstruction(self.top_line_index)
+
+        self.offset_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + self.gap_length_v / 2 + self.gap_length_h, self.gap_length_h * 2 + self.gap_length_v / 2), False)
+        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.offset_line_index))
+        self.sketch.toggleConstruction(self.offset_line_index)
+        self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.top_line_index, START, self.offset_line_index, START, self.gap_length_v.y / 2))
+
         for idx in range(0, self.num_segments):
             self.add_short_lines()
             if idx == 0:
-                self.bounds['lower_left'] = (self.get_line_from_index(self._outer_lines[2]).EndPoint, self._outer_lines[2])
+                index = self._outer_lines[2]
+                self.bounds['lower_left'] = (self.get_line_from_index(index).EndPoint, index)
 
-            line_index, inner_line = self.add_line(self.sketch.Geometry[self._outer_lines[-1]].EndPoint - (self.gap_length_v / 2), self.long_length, self._inner_lines)
+                self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.short_line_index, START, self.top_line_index, START))
+
+            line_index, inner_line = self.add_line(self.get_line_from_index(self._outer_lines[-1]).EndPoint - (self.gap_length_v / 2), self.long_length, self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
 
             if idx == 0:
                 self.long_line_index = line_index
                 self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, self.long_length.y))
+                self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.long_line_index, END, self.offset_line_index, START))
                 self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.short_line_index, START, line_index, START, self.gap_size / 2))
             else:
                 self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
