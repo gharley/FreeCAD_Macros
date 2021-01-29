@@ -57,7 +57,10 @@ class Hinge:
             kerf = 0.2
         self.kerf = kerf
 
-        self.bounds = {'upper_left': (start_point, 0), 'upper_right': None, 'lower_right': None, 'lower_left': None}
+        self.upper_left = (start_point, 0)
+        self.upper_right = None
+        self.lower_right = None
+        self.lower_left = None
 
         self.long_length = App.Vector(0, (height - thickness * 2))
         self.long_line_index = -1
@@ -160,8 +163,10 @@ class Hinge:
         for idx in range(0, self.num_segments):
             self.add_short_lines()
             if idx == 0:
+                self.upper_left = (self.start_point, self._outer_lines[0])
+
                 index = self._outer_lines[2]
-                self.bounds['lower_left'] = (self.get_line_from_index(index).EndPoint, index)
+                self.lower_left = (self.get_line_from_index(index).EndPoint, index)
 
             line_index, inner_line = self.add_line(self.get_line_from_index(self._outer_lines[-1]).EndPoint - (self.gap_length_v / 2), self.long_length, self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
@@ -189,11 +194,11 @@ class Hinge:
         line2 = (self.get_line_from_index(self._outer_lines[-4]).StartPoint, self._outer_lines[-4])
 
         if line1[0].y > line2[0].y:
-            self.bounds['upper_right'] = line1
-            self.bounds['lower_right'] = line2
+            self.upper_right = line1
+            self.lower_right = line2
         else:
-            self.bounds['upper_right'] = line2
-            self.bounds['lower_right'] = line1
+            self.upper_right = line2
+            self.lower_right = line1
 
     def get_line_from_index(self, index):
         return self.sketch.Geometry[index]
@@ -352,34 +357,60 @@ class Box:
         sketch = self._add_sketch(sketch_name)
 
         thickness = sheet.thickness
-        width = sheet.get(sheet.getCellFromAlias(width_alias))
-        actual_width = width + thickness
-        width_expression = '{0}{1} + {0}thickness'.format(sheet_prefix, width_alias)
-        offset = sheet.offsetH
+        width = sheet.width
+        depth = sheet.depth
         height = sheet.height
+        offset = sheet.offsetH
 
         bottom_thickness = sheet.bottomThickness
         lid_thickness = sheet.lidThickness
 
-        # if self.box_type == 0:
-        #     actual_height = height + lid_thickness + bottom_thickness * 2
-        #     height_expression = '-({0}height + {0}lidThickness + {0}bottomThickness * 2)'.format(sheet_prefix)
-        # elif self.box_type == 1:
-        #     actual_height = height + lid_thickness + bottom_thickness
-        #     height_expression = '-({0}height + {0}lidThickness + {0}bottomThickness)'.format(sheet_prefix)
-        # else:
-        #     actual_height = height + bottom_thickness
-        #     height_expression = '-({0}height + {0}bottomThickness)'.format(sheet_prefix)
+        if self.box_type == 0:
+            actual_height = height + lid_thickness + bottom_thickness * 2
+        elif self.box_type == 1:
+            actual_height = height + lid_thickness + bottom_thickness
+        else:
+            actual_height = height + bottom_thickness
 
-        actual_height = height
-        lower_left, upper_left, lower_right, upper_right = self.get_vectors(actual_width, actual_height)
-        first = Hinge(sketch, actual_height, thickness, sheet.radius)
-        first.start_point = upper_left + App.Vector((width - first.length) / 2, 0)
-        first.draw()
-        second = Hinge(sketch, actual_height, thickness, sheet.radius, first.start_point + App.Vector(width, 0))
-        second.draw()
-        sketch.addConstraint(Sketcher.Constraint('DistanceX', first.short_line_index, START, second.short_line_index, START, width))
-        sketch.addConstraint(Sketcher.Constraint('DistanceY', first.short_line_index, START, second.short_line_index, START, 0))
+        def draw_lines(top_start, bottom_start, length):
+            line1 = sketch.addGeometry(Part.LineSegment(top_start, top_start + length / 2), False)
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', line1))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', line1, length.x / 2))
+
+            line2 = sketch.addGeometry(Part.LineSegment(bottom_start, bottom_start + length / 2), False)
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', line2))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', line2, length.x / 2))
+
+            return line1, line2
+
+        lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, actual_height)
+        hinge = Hinge(sketch, actual_height, thickness, sheet.radius)
+        short_length = App.Vector(depth - hinge.length, 0)
+        long_length = App.Vector(width - hinge.length, 0)
+
+        top_line, bottom_line = draw_lines(upper_left, lower_left, short_length / 2)
+
+        hinge.start_point = upper_left + short_length / 2
+        hinge.draw()
+
+        sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, hinge.upper_left[1], START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, hinge.lower_left[1], END))
+
+        top_line, bottom_line = draw_lines(hinge.upper_right[0], hinge.lower_right[0], long_length)
+
+        sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.upper_right[1], END, top_line, START))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.lower_right[1], START, bottom_line, END))
+
+        hinge = Hinge(sketch, actual_height, thickness, sheet.radius, hinge.upper_right[0])
+        hinge.draw()
+
+        sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, hinge.upper_left[1], START))
+        # sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, hinge.lower_left[1], END))
+
+        # second = Hinge(sketch, actual_height, thickness, sheet.radius, hinge.start_point + App.Vector(width, 0))
+        # second.draw()
+        # sketch.addConstraint(Sketcher.Constraint('DistanceX', hinge.short_line_index, START, second.short_line_index, START, width))
+        # sketch.addConstraint(Sketcher.Constraint('DistanceY', hinge.short_line_index, START, second.short_line_index, START, 0))
         #
         # box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
         #
