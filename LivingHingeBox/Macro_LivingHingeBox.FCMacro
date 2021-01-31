@@ -50,32 +50,25 @@ class Hinge:
     def __init__(self, sketch, height, thickness, radius, start_point=None, kerf=None):
         self.sketch = sketch
         self.height = height
+        self.thickness = thickness
 
         if start_point is None:
-            start_point = App.Vector(0, height)
+            start_point = App.Vector(0, 0)
         self.start_point = start_point
 
         if kerf is None:
             kerf = Hinge.DEFAULT_KERF
         self.kerf = kerf
 
-        self.upper_left = (start_point, 0)
-        self.upper_right = None
-        self.lower_right = None
-        self.lower_left = None
-
-        self.long_length = App.Vector(0, -(height - thickness * 2))
         self.long_line_index = -1
-        self.short_length = self.long_length / 2
         self.short_line_index = -1
-        self.gap_length_v = App.Vector(0, -(thickness * 2))
         self.gap_v_line_index = -1
-        self.gap_size, self.num_segments = self.get_num_segments(radius, self.kerf)
-        self.gap_length_h = App.Vector(self.gap_size, 0)
         self.gap_h_line_index = -1
         self.top_line_index = -1
         self.bottom_line_index = -1
         self.offset_line_index = -1
+
+        self.gap_size, self.num_segments = self.get_num_segments(radius, self.kerf)
 
         self._outer_lines = []
         self._inner_lines = []
@@ -110,92 +103,89 @@ class Hinge:
 
         return index, new_line
 
-    def add_short_lines(self):
-        start_point = self.start_point if len(self._outer_lines) == 0 else self.sketch.Geometry[self._outer_lines[-1]].EndPoint
+    def add_short_lines(self, short_length, gap_length_v, gap_length_h):
         first_time = self.short_line_index == -1
+        start_point = self.start_point if first_time else self.sketch.Geometry[self._outer_lines[-1]].EndPoint
 
-        index, line = self.add_line(start_point, self.short_length, self._outer_lines)
+        index, line = self.add_line(start_point, short_length, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
 
         if first_time:
             self.short_line_index = index
-            self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, self.short_length.y))
-            self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.short_line_index, START, self.top_line_index, START))
+            self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, short_length.y))
+            self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.short_line_index, START, self.bottom_line_index, START))
         else:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
-        index, line = self.add_line(line.EndPoint, self.gap_length_v, self._outer_lines)
+        index, line = self.add_line(line.EndPoint, gap_length_v, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
         self.sketch.toggleConstruction(index)
 
         if self.gap_v_line_index == -1:
             self.gap_v_line_index = index
-            self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, self.gap_length_v.y))
+            # self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, gap_length_v.y))
         else:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_v_line_index, index))
 
-        index, line = self.add_line(line.EndPoint, self.short_length, self._outer_lines)
+        index, line = self.add_line(line.EndPoint, short_length, self._outer_lines)
         self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
         self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
         if first_time:
-            self.sketch.addConstraint(Sketcher.Constraint('Coincident', index, END, self.bottom_line_index, START))
+            self.sketch.addConstraint(Sketcher.Constraint('Coincident', index, END, self.top_line_index, START))
 
-        index, line = self.add_line(start_point, self.gap_length_h, self._outer_lines, (self._outer_lines[-3], START))
+        index, line = self.add_line(start_point, gap_length_h, self._outer_lines, (self._outer_lines[-3], START))
         self.sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
         self.sketch.toggleConstruction(index)
 
         if self.gap_h_line_index == -1:
             self.gap_h_line_index = index
-            self.sketch.addConstraint(Sketcher.Constraint('DistanceX', index, self.gap_length_h.x))
+            self.sketch.addConstraint(Sketcher.Constraint('DistanceX', index, gap_length_h.x))
         else:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, index))
 
     def draw(self):
         hinge_length = App.Vector(self.length, 0)
-        self.top_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point, self.start_point + hinge_length), False)
-        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
-        self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.top_line_index, self.length))
-
         hinge_height = App.Vector(0, self.height)
-        self.bottom_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + hinge_height, self.start_point + hinge_height + hinge_length), False)
-        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.bottom_line_index))
-        self.sketch.addConstraint(Sketcher.Constraint('Equal', self.top_line_index, self.bottom_line_index))
+        long_length = App.Vector(0, self.height - self.thickness * 2)
+        gap_length_v = App.Vector(0, self.thickness * 2)
+        gap_length_h = App.Vector(self.gap_size, 0)
 
-        self.offset_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + self.gap_length_v / 2, self.start_point + self.gap_length_v / 2 + hinge_length), False)
+        self.bottom_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point, self.start_point + hinge_length), False)
+        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.bottom_line_index))
+        self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.bottom_line_index, self.length))
+
+        self.top_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + hinge_height, self.start_point + hinge_height + hinge_length), False)
+        self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
+        self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.top_line_index))
+        self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.bottom_line_index, START, self.top_line_index, START, hinge_height.y))
+
+        self.offset_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + gap_length_v / 2, self.start_point + gap_length_v / 2 + hinge_length), False)
         self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.offset_line_index))
-        self.sketch.addConstraint(Sketcher.Constraint('Equal', self.top_line_index, self.offset_line_index))
-        self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.top_line_index, START, self.offset_line_index, START, self.gap_length_v.y / 2))
+        self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.offset_line_index))
+        self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.bottom_line_index, START, self.offset_line_index, START, gap_length_v.y / 2))
         self.sketch.toggleConstruction(self.offset_line_index)
 
         for idx in range(0, self.num_segments):
-            self.add_short_lines()
-            if idx == 0:
-                self.upper_left = (self.start_point, self._outer_lines[0])
+            self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
 
-                index = self._outer_lines[2]
-                self.lower_left = (self.get_line_from_index(index).EndPoint, index)
-
-            line_index, inner_line = self.add_line(self.get_line_from_index(self._outer_lines[-1]).EndPoint - (self.gap_length_v / 2), self.long_length, self._inner_lines)
+            line_index, inner_line = self.add_line(self.get_line_from_index(self._outer_lines[-1]).EndPoint - (gap_length_v / 2), long_length, self._inner_lines)
             self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
 
             if idx == 0:
                 self.long_line_index = line_index
-                self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, self.long_length.y))
+                self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, long_length.y))
                 self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.long_line_index, START, self.offset_line_index, START))
                 self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.short_line_index, START, line_index, START, self.gap_size / 2))
             else:
                 self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
 
-            line_index, inner_line = self.add_line(inner_line.EndPoint, self.gap_length_h, self._inner_lines, (line_index, START))
+            line_index, inner_line = self.add_line(inner_line.EndPoint, gap_length_h, self._inner_lines, (line_index, END))
             self.sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, line_index))
             self.sketch.toggleConstruction(line_index)
 
-        self.add_short_lines()
-
-        self.upper_right = self.get_line_from_index(self._outer_lines[-4]).StartPoint, self._outer_lines[-4]
-        self.lower_right = self.get_line_from_index(self._outer_lines[-2]).EndPoint, self._outer_lines[-2]
+        self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
 
     def get_line_from_index(self, index):
         return self.sketch.Geometry[index]
@@ -390,14 +380,13 @@ class Box:
         def draw_side(top_start, bottom_start, length, old_hinge=None):
             top_line, bottom_line = draw_lines(top_start, bottom_start, length)
             if old_hinge is not None:
-                sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, START, old_hinge.upper_right[1], START))
-                # sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, START, old_hinge.lower_right[1], END))
+                sketch.addConstraint(Sketcher.Constraint('Coincident', old_hinge.top_line_index, END, top_line, START))
 
-            new_hinge = Hinge(sketch, actual_height, thickness, sheet.radius, top_start + length)
+            new_hinge = Hinge(sketch, actual_height, thickness, sheet.radius, bottom_start + length)
             new_hinge.draw()
 
-            sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, new_hinge.upper_left[1], START))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, new_hinge.lower_left[1], END))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, new_hinge.top_line_index, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, new_hinge.bottom_line_index, START))
 
             return new_hinge
 
@@ -407,11 +396,26 @@ class Box:
         long_length = App.Vector(width - hinge_length, 0)
 
         hinge = draw_side(upper_left, lower_left, short_length / 2)
-        hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], long_length, hinge)
-        hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], short_length, hinge)
-        hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], long_length, hinge)
-        # hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], short_length / 2, hinge)
-        #
+        top_point = hinge.get_line_from_index(hinge.top_line_index).EndPoint
+        bottom_point = hinge.get_line_from_index(hinge.bottom_line_index).EndPoint
+
+        hinge = draw_side(top_point, bottom_point, long_length, hinge)
+        top_point = hinge.get_line_from_index(hinge.top_line_index).EndPoint
+        bottom_point = hinge.get_line_from_index(hinge.bottom_line_index).EndPoint
+
+        hinge = draw_side(top_point, bottom_point, short_length, hinge)
+        top_point = hinge.get_line_from_index(hinge.top_line_index).EndPoint
+        bottom_point = hinge.get_line_from_index(hinge.bottom_line_index).EndPoint
+
+        hinge = draw_side(top_point, bottom_point, long_length, hinge)
+        top_point = hinge.get_line_from_index(hinge.top_line_index).EndPoint
+        bottom_point = hinge.get_line_from_index(hinge.bottom_line_index).EndPoint
+        # hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], short_length, hinge)
+        # hinge = draw_side(hinge.upper_right[0], hinge.lower_right[0], long_length, hinge)
+
+        last_top, last_bottom = draw_lines(top_point, bottom_point, short_length / 2)
+        sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.top_line_index, END, last_top, START))
+        sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.bottom_line_index, END, last_bottom, START))
         # box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
         #
         # lines = self.draw_edge_tabs(sketch, face, Direction.NS, True, upper_right)
