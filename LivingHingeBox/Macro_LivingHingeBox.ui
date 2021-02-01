@@ -616,6 +616,19 @@
     </item>
    </layout>
   </widget>
+  <widget class="QCheckBox" name="chkConstrain">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>450</y>
+     <width>101</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Add Constraints</string>
+   </property>
+  </widget>
  </widget>
  <tabstops>
   <tabstop>width</tabstop>

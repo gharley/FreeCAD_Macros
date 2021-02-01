@@ -47,8 +47,9 @@ class Face(Enum):
 class Hinge:
     DEFAULT_KERF = 0.2
 
-    def __init__(self, sketch, height, thickness, radius, start_point=None, kerf=None):
+    def __init__(self, sketch, height, thickness, radius, start_point=None, kerf=None, constrain=False):
         self.sketch = sketch
+        self.constrain = constrain
         self.height = height
         self.thickness = thickness
 
@@ -96,8 +97,8 @@ class Hinge:
         if len(lines) != 0 and connection is None:
             connection = lines[-1], END
 
-        # if connection is not None:
-        #     self.sketch.addConstraint(Sketcher.Constraint('Coincident', connection[0], connection[1], index, START))
+        if self.constrain and connection is not None:
+            self.sketch.addConstraint(Sketcher.Constraint('Coincident', connection[0], connection[1], index, START))
 
         lines.append(index)
 
@@ -108,41 +109,46 @@ class Hinge:
         start_point = self.start_point if first_time else self.sketch.Geometry[self._outer_lines[-1]].EndPoint
 
         index, line = self.add_line(start_point, short_length, self._outer_lines)
-        # self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
 
         if first_time:
             self.short_line_index = index
-        #     self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, short_length.y))
-        #     self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.bottom_line_index, START, self.short_line_index, START))
-        # else:
-        #     self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
+            if self.constrain:
+                self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, short_length.y))
+                self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.bottom_line_index, START, self.short_line_index, START))
+        elif self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
         index, line = self.add_line(line.EndPoint, gap_length_v, self._outer_lines)
-        # self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
         self.sketch.toggleConstruction(index)
 
         if self.gap_v_line_index == -1:
             self.gap_v_line_index = index
-            # self.sketch.addConstraint(Sketcher.Constraint('DistanceY', index, gap_length_v.y))
-        # else:
-        #     self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_v_line_index, index))
+        elif self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_v_line_index, index))
 
         index, line = self.add_line(line.EndPoint, short_length, self._outer_lines)
-        # self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
-        # self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Vertical', index))
+            self.sketch.addConstraint(Sketcher.Constraint('Equal', self.short_line_index, index))
 
-        # if first_time:
-        #     self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.top_line_index, START, index, END))
+        if self.constrain and first_time:
+            self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.top_line_index, START, index, END))
 
         index, line = self.add_line(start_point, gap_length_h, self._outer_lines, (self._outer_lines[-3], START))
-        # self.sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Horizontal', index))
         self.sketch.toggleConstruction(index)
 
         if self.gap_h_line_index == -1:
             self.gap_h_line_index = index
-        #     self.sketch.addConstraint(Sketcher.Constraint('DistanceX', index, gap_length_h.x))
-        # else:
-        #     self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, index))
+            if self.constrain:
+                self.sketch.addConstraint(Sketcher.Constraint('DistanceX', index, gap_length_h.x))
+        elif self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, index))
 
     def draw(self):
         hinge_length = App.Vector(self.length, 0)
@@ -152,37 +158,37 @@ class Hinge:
         gap_length_h = App.Vector(self.gap_size, 0)
 
         self.bottom_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point, self.start_point + hinge_length), False)
-        # self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.bottom_line_index))
-        # self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.bottom_line_index, self.length))
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.bottom_line_index))
+            self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.bottom_line_index, hinge_length.x))
 
         self.top_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + hinge_height, self.start_point + hinge_height + hinge_length), False)
-        # self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
-        # self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.top_line_index))
-        # self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.bottom_line_index, START, self.top_line_index, START, hinge_height.y))
-
-        self.offset_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + gap_length_v / 2, self.start_point + gap_length_v / 2 + hinge_length), False)
-        # self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.offset_line_index))
-        # self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.offset_line_index))
-        # self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.bottom_line_index, START, self.offset_line_index, START, gap_length_v.y / 2))
-        self.sketch.toggleConstruction(self.offset_line_index)
+        if self.constrain:
+            self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
+            self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.top_line_index))
+            self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.bottom_line_index, START, self.top_line_index, START, hinge_height.y))
 
         for idx in range(0, self.num_segments):
             self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
 
-            line_index, inner_line = self.add_line(self.get_line_from_index(self._outer_lines[-1]).EndPoint - (gap_length_h / 2) + (gap_length_v / 2), long_length, self._inner_lines)
-            # self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
+            long_start = self.get_line_from_index(self._outer_lines[-1]).EndPoint - (gap_length_h / 2) + (gap_length_v / 2)
+            line_index, inner_line = self.add_line(long_start, long_length, self._inner_lines)
+            if self.constrain:
+                self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
 
             if idx == 0:
                 self.long_line_index = line_index
-            #     self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, long_length.y))
-            #     self.sketch.addConstraint(Sketcher.Constraint('Coincident', self.long_line_index, START, self.offset_line_index, START))
-            #     self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.short_line_index, START, line_index, START, self.gap_size / 2))
-            # else:
-            #     self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
+                if self.constrain:
+                    self.sketch.addConstraint(Sketcher.Constraint('DistanceY', line_index, long_length.y))
+                    self.sketch.addConstraint(Sketcher.Constraint('DistanceY', self.short_line_index, START, line_index, START, gap_length_v.y / 2))
+                    self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.short_line_index, START, line_index, START, gap_length_h.x / 2))
+            elif self.constrain:
+                self.sketch.addConstraint(Sketcher.Constraint('Equal', self.long_line_index, line_index))
 
-            line_index, inner_line = self.add_line(inner_line.EndPoint, gap_length_h, self._inner_lines, (line_index, END))
-            # self.sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
-            # self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, line_index))
+            line_index, inner_line = self.add_line(long_start, gap_length_h, self._inner_lines, (self._inner_lines[-1], START))
+            if self.constrain:
+                self.sketch.addConstraint(Sketcher.Constraint('Horizontal', line_index))
+                self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, line_index))
             self.sketch.toggleConstruction(line_index)
 
         self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
@@ -217,6 +223,7 @@ class Box:
         self.widget = Optional[QtSvg.QSvgWidget]
 
         self.worksheet = None
+        self.constrain = False
         self.box_type = 0
         self.num_tabs = {'numTabsLength': 0, 'numTabsDepth': 0, 'numTabsHeight': 0}
 
@@ -338,6 +345,8 @@ class Box:
     def build_geometry(self):
         self._init_sheet()
 
+        self.constrain = self.dialog.chkConstrain.isChecked()
+
         if self.dialog.chkSide.isChecked():
             self.build_long_side()
         #
@@ -368,25 +377,27 @@ class Box:
 
         def draw_lines(top_start, bottom_start, length):
             line1 = sketch.addGeometry(Part.LineSegment(top_start, top_start + length), False)
-            # sketch.addConstraint(Sketcher.Constraint('Horizontal', line1))
-            # sketch.addConstraint(Sketcher.Constraint('DistanceX', line1, length.x))
-
             line2 = sketch.addGeometry(Part.LineSegment(bottom_start, bottom_start + length), False)
-            # sketch.addConstraint(Sketcher.Constraint('Horizontal', line2))
-            # sketch.addConstraint(Sketcher.Constraint('Equal', line1, line2))
+
+            if self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Horizontal', line1))
+                sketch.addConstraint(Sketcher.Constraint('Horizontal', line2))
+                sketch.addConstraint(Sketcher.Constraint('DistanceX', line1, length.x))
+                sketch.addConstraint(Sketcher.Constraint('Equal', line1, line2))
 
             return line1, line2
 
         def draw_side(top_start, bottom_start, length, old_hinge=None):
             top_line, bottom_line = draw_lines(top_start, bottom_start, length)
-            # if old_hinge is not None:
-            #     sketch.addConstraint(Sketcher.Constraint('Coincident', old_hinge.top_line_index, END, top_line, START))
+            if self.constrain and old_hinge is not None:
+                sketch.addConstraint(Sketcher.Constraint('Coincident', old_hinge.top_line_index, END, top_line, START))
 
-            new_hinge = Hinge(sketch, actual_height, thickness, sheet.radius, bottom_start + length)
+            new_hinge = Hinge(sketch, actual_height, thickness, sheet.radius, bottom_start + length, constrain=self.constrain)
             new_hinge.draw()
 
-            # sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, new_hinge.top_line_index, START))
-            # sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, new_hinge.bottom_line_index, START))
+            if self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, new_hinge.top_line_index, START))
+                sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line, END, new_hinge.bottom_line_index, START))
 
             top = new_hinge.get_line_from_index(new_hinge.top_line_index).EndPoint
             bottom = new_hinge.get_line_from_index(new_hinge.bottom_line_index).EndPoint
@@ -404,8 +415,9 @@ class Box:
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, hinge)
 
         last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.top_line_index, END, last_top, START))
-        # sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.bottom_line_index, END, last_bottom, START))
+        if self.constrain:
+            sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.top_line_index, END, last_top, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.bottom_line_index, END, last_bottom, START))
         # box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
         #
         # lines = self.draw_edge_tabs(sketch, face, Direction.NS, True, upper_right)
