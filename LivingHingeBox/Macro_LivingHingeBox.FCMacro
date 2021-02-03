@@ -378,7 +378,7 @@ class Box:
         def draw_lines(top_start, bottom_start, length, num_tabs=1):
             line1 = sketch.addGeometry(Part.LineSegment(top_start, top_start + length), False)
 
-            if self.box_type == 2:
+            if self.box_type == 1:
                 line2 = [sketch.addGeometry(Part.LineSegment(bottom_start, bottom_start + length), False)]
             else:
                 line2 = self.draw_edge_tabs(sketch, num_tabs, length.x, Direction.WE, False, bottom_start)
@@ -397,6 +397,9 @@ class Box:
             top_line, bottom_line = draw_lines(top_start, bottom_start, length, num_tabs)
             if self.constrain and old_hinge is not None:
                 sketch.addConstraint(Sketcher.Constraint('Coincident', old_hinge.top_line_index, END, top_line, START))
+
+            if self.box_type != 2:
+                self.draw_slots(sketch, num_tabs, length.x, top_start)
 
             new_hinge = Hinge(sketch, actual_height, thickness, sheet.radius, bottom_start + length, constrain=self.constrain)
             new_hinge.draw()
@@ -421,6 +424,10 @@ class Box:
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, 4, hinge)
 
         last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
+
+        if self.box_type != 2:
+            self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
+
         if self.constrain:
             sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.top_line_index, END, last_top, START))
             sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.bottom_line_index, END, last_bottom[-1], START))
@@ -510,63 +517,66 @@ class Box:
     def build_short_side(self):
         self._build_side('BoxEnd', 'depth', Face.END, self.draw_end_slots)
 
-    def draw_slot(self, sketch, width, height, expression_h, expression_v):
+    def draw_slot(self, sketch, width, height, start_point=None):
+        if start_point is None:
+            start_point = App.Vector(0, 0)
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
-        top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
-        right = sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)
-        bottom = sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)
-        left = sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
+        top = sketch.addGeometry(Part.LineSegment(upper_left + start_point, upper_right + start_point), False)
+        right = sketch.addGeometry(Part.LineSegment(lower_right + start_point, upper_right + start_point), False)
+        bottom = sketch.addGeometry(Part.LineSegment(lower_left + start_point, lower_right + start_point), False)
+        left = sketch.addGeometry(Part.LineSegment(upper_left + start_point, lower_left + start_point), False)
 
-        sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', left))
-        sketch.addConstraint(Sketcher.Constraint('Vertical', right))
+        if self.constrain:
+            sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
+            sketch.addConstraint(Sketcher.Constraint('Vertical', left))
+            sketch.addConstraint(Sketcher.Constraint('Vertical', right))
 
-        sketch.addConstraint(Sketcher.Constraint('Equal', left, right))
+            sketch.addConstraint(Sketcher.Constraint('Equal', left, right))
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_h)
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
+            # sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_h)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_v)
+            constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
+            # sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_v)
 
-        sketch.addConstraint(Sketcher.Constraint('Coincident', top, END, right, START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', right, END, bottom, START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
-        sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', top, END, right, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', right, END, bottom, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, END, left, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
 
         return [top, right, bottom, left]
 
-    def _draw_slots(self, sketch, num_tabs, gap, expression_gap):
+    def _draw_slots(self, sketch, num_tabs, width, start_point):
         tabs = []
         first = []
         tab_width = self.worksheet.tabWidth
-        expression_width = '{0}tabWidth'.format(self.get_sheet_expression_prefix())
+        gap = (width - num_tabs * tab_width) / (num_tabs + 1)
         bottom_thickness = self.worksheet.bottomThickness
-        expression_thickness = '{0}bottomThickness'.format(self.get_sheet_expression_prefix())
+        offset_length = App.Vector(tab_width + gap, 0)
+        start_point = start_point + App.Vector(gap, -(self.worksheet.lidThickness + bottom_thickness))
+        # expression_width = '{0}tabWidth'.format(self.get_sheet_expression_prefix())
+        # expression_thickness = '{0}bottomThickness'.format(self.get_sheet_expression_prefix())
 
         for idx in range(0, num_tabs):
-            tab = self.draw_slot(sketch, tab_width, bottom_thickness, expression_width, expression_thickness)
+            tab = self.draw_slot(sketch, tab_width, bottom_thickness, start_point + offset_length * idx)
             tabs.append(tab)
 
             if idx == 0:
                 first = tab
-            else:
+            elif self.constrain:
                 constraint = sketch.addConstraint(
                     Sketcher.Constraint('DistanceX', first[TOP], END, tab[TOP], START, gap * idx + tab_width * (idx - 1)))
-                sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_gap.format(idx))
+                # sketch.setExpression("Constraints[{0}]".format(str(constraint)), expression_gap.format(idx))
 
                 sketch.addConstraint(Sketcher.Constraint('DistanceY', first[TOP], END, tab[TOP], START, 0))
 
         return tabs
 
-    def draw_slots(self, sketch, num_tabs, gap_alias):
-        sheet = self.worksheet
-        sheet_prefix = self.get_sheet_expression_prefix()
-
-        gap = sheet.get(sheet.getCellFromAlias(gap_alias))
-
-        return self._draw_slots(sketch, num_tabs, gap, '{0}{1} * {2} + {0}tabWidth * ({2} - 1)'.format(sheet_prefix, gap_alias, '{0}'))
+    def draw_slots(self, sketch, num_tabs, width, start_point=None):
+        if start_point is None:
+            start_point = App.Vector(0, 0)
+        return self._draw_slots(sketch, num_tabs, width, start_point)
 
     def draw_end_slots(self, sketch):
         num_tabs = int(self.num_tabs['numTabsDepth'])
