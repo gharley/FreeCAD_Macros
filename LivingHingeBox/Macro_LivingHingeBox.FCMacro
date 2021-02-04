@@ -283,7 +283,7 @@ class Box:
             self.props.lidThickness = self.props.thickness
 
         if self.props.numTabsDepth == 0:
-            self.props.numTabsDepth = self.props.numTabsLength
+            self.props.numTabsDepth = self.props.numTabsWidth
 
     def build_geometry(self):
         self._init_properties()
@@ -292,9 +292,9 @@ class Box:
 
         if self.dialog.chkSide.isChecked():
             self.build_side()
-        #
-        # if self.dialog.chkBottom.isChecked():
-        #     self.build_bottom()
+
+        if self.dialog.chkBottom.isChecked():
+            self.build_bottom()
 
     def build_side(self):
         props = self.props
@@ -363,9 +363,9 @@ class Box:
         long_length = App.Vector(width - hinge_length, 0)
 
         hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2)
-        hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsLength, hinge)
+        hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsWidth, hinge)
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, short_length, props.numTabsDepth, hinge)
-        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, props.numTabsLength, hinge)
+        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, props.numTabsWidth, hinge)
 
         last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
 
@@ -389,26 +389,42 @@ class Box:
         props = self.props
         sketch = self._add_sketch('BoxBottom')
 
-        width = props.width
-        depth = props.depth
+        lower_left, upper_left, lower_right, upper_right = self.get_vectors(props.width, props.depth)
 
-        lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
+        width = props.width - props.radius * 2
+        depth = props.depth - props.radius * 2
+        offset_h = App.Vector(props.radius, 0)
+        offset_v = App.Vector(0, props.radius)
 
-        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False, upper_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False, upper_right),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False, lower_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False, upper_left)]
+        box = [self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.WE, True, upper_left + offset_h),
+               self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.NS, True, lower_right + offset_v),
+               self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
+               self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.SN, True, lower_left + offset_v)]
 
-        self._constrain_sides(sketch, box)
+        arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
+        arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
+        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), props.radius)
+        sketch.addGeometry(Part.ArcOfCircle(circle, pi, pi * 1.5), False)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
+        arc_start = sketch.Geometry[box[TOP][0]].StartPoint.x
+        arc_stop = sketch.Geometry[box[LEFT][-1]].EndPoint.y
+        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), props.radius)
+        sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2, pi), False)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -depth))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
+        arc_start = sketch.Geometry[box[TOP][-1]].EndPoint.x
+        arc_stop = sketch.Geometry[box[RIGHT][-1]].EndPoint.y
+        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), props.radius)
+        sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2), False)
 
-        sketch.movePoint(box[TOP][0], START, App.Vector(-width / 2, depth / 2, 0))
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
+        arc_start = sketch.Geometry[box[BOTTOM][-1]].EndPoint.x
+        arc_stop = sketch.Geometry[box[RIGHT][0]].StartPoint.y
+        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), props.radius)
+        sketch.addGeometry(Part.ArcOfCircle(circle, pi * 1.5, 0), False)
+
+        if self.constrain:
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, depth))
+            sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -468,7 +484,7 @@ class Box:
     def draw_edge_tabs(self, sketch, num_tabs, width, direction, is_bottom, start=App.Vector(0, 0)):
         props = self.props
         is_vertical = direction is Direction.NS or direction is Direction.SN
-        config = DotDict({'num_tabs': num_tabs, 'tab_width': props.tabWidth})
+        config = DotDict({'num_tabs': num_tabs, 'tab_width': props.tabWidth, 'gap': (width - num_tabs * props.tabWidth) / (num_tabs + 1)})
 
         lines = []
 
@@ -486,23 +502,12 @@ class Box:
             return new_index, new_line
 
         if is_vertical:
-            config.tab_width = -props.tabWidth
-
-            if is_bottom:
-                config.num_tabs = props.numTabsDepth
-                config.gap = -props.endGap
-                config.offset = -props.offsetH
-            else:
-                config.num_tabs = props.numTabsHeight
-                config.gap = -props.heightGap
-                config.offset = -props.offsetV
-
             config.thickness = props.thickness
 
             if direction == Direction.SN:
                 config.thickness = -config.thickness
 
-            offset_length = App.Vector(0, config.offset)
+            offset_length = App.Vector(0, config.gap)
             gap_length = App.Vector(0, config.gap)
             tab_length = App.Vector(0, config.tab_width)
             thickness_length = App.Vector(config.thickness, 0)
@@ -511,7 +516,7 @@ class Box:
             config.offset = config.gap
 
             if is_bottom:
-                config.thickness = props.thickness
+                config.thickness = -props.thickness
             else:
                 config.thickness = props.bottomThickness
 
