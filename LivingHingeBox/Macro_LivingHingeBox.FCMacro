@@ -271,13 +271,19 @@ class Box:
                 if isinstance(buddy, QtGui.QComboBox):
                     self.box_type = buddy.currentIndex()
                 else:
-                    self.props[buddy_name] = float(buddy.text())
+                    self.props[buddy_name] = int(buddy.text()) if buddy_name.startswith('num') else float(buddy.text())
+
+        if self.props.depth == 0:
+            self.props.depth = self.props.width
 
         if self.props.bottomThickness == 0:
             self.props.bottomThickness = self.props.thickness
 
         if self.props.lidThickness == 0:
             self.props.lidThickness = self.props.thickness
+
+        if self.props.numTabsDepth == 0:
+            self.props.numTabsDepth = self.props.numTabsLength
 
     def build_geometry(self):
         self._init_properties()
@@ -356,12 +362,15 @@ class Box:
         short_length = App.Vector(depth - hinge_length, 0)
         long_length = App.Vector(width - hinge_length, 0)
 
-        hinge, first_top, hinge_bottom = draw_side(upper_left, lower_left, short_length / 2)
-        hinge, hinge_top, hinge_bottom = draw_side(first_top, hinge_bottom, long_length, 4, hinge)
-        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, short_length, 4, hinge)
-        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, 4, hinge)
+        hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2)
+        hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsLength, hinge)
+        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, short_length, props.numTabsDepth, hinge)
+        hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, props.numTabsLength, hinge)
 
         last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
+
+        sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
+        sketch.addGeometry(Part.LineSegment(hinge_bottom + short_length / 2, hinge_top + short_length / 2), False)
 
         if self.box_type != 2:
             self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
