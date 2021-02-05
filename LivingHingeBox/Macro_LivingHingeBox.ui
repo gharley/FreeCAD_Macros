@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>429</width>
-    <height>536</height>
+    <height>488</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
      <x>10</x>
      <y>10</y>
      <width>301</width>
-     <height>518</height>
+     <height>461</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -64,36 +64,10 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout" columnminimumwidth="100,0,0">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Inner width:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>width</cstring>
-        </property>
-       </widget>
-      </item>
       <item row="4" column="1">
        <widget class="QLineEdit" name="bottomThickness">
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Only necessary if bottom material is a different thickness than the sides. If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>0</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QLineEdit" name="lidThickness">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lid thickness is used to specify the distance from the top of the side to the top of the slots (if specified). If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>0</string>
@@ -116,29 +90,26 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_15">
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_16">
         <property name="text">
-         <string>Bottom thickness:</string>
+         <string>Lid thickness:</string>
         </property>
         <property name="buddy">
-         <cstring>bottomThickness</cstring>
+         <cstring>lidThickness</cstring>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="height">
+      <item row="5" column="1">
+       <widget class="QLineEdit" name="lidThickness">
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Inside dimension of the height of the box. The actual height will vary with material thickness and box type.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lid thickness is used to specify the distance from the top of the side to the top of the slots (if specified). If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>50</string>
+         <string>0</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
         </property>
        </widget>
       </item>
@@ -155,42 +126,45 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>60</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="thickness">
+      <item row="6" column="1">
+       <widget class="QLineEdit" name="radius">
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The thickness of the box material, used to calculate tab and slot sizes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The radius of the corners of the box, 15 is a good starting value.  Smaller values have not been tested and could be problematic especially in thicker materials.  Larger values will result on mor hinge segments.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>3</string>
+         <string>15</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Inner width:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>width</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="height">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Inside dimension of the height of the box. The actual height will vary with material thickness and box type.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>50</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="placeholderText">
          <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_16">
-        <property name="text">
-         <string>Lid thickness:</string>
-        </property>
-        <property name="buddy">
-         <cstring>lidThickness</cstring>
         </property>
        </widget>
       </item>
@@ -223,13 +197,13 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="width">
+      <item row="3" column="1">
+       <widget class="QLineEdit" name="thickness">
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Inside dimension of the long side of the box. The outer dimension will vary with material thickness.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The thickness of the box material, used to calculate tab and slot sizes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>100</string>
+         <string>3.6</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -249,16 +223,62 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
-       <widget class="QLineEdit" name="radius">
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_15">
+        <property name="text">
+         <string>Bottom thickness:</string>
+        </property>
+        <property name="buddy">
+         <cstring>bottomThickness</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>60</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="width">
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The radius of the corners of the box, 15 is a good starting value.  Smaller values have not been tested and could be problematic especially in thicker materials.  Larger values will result on mor hinge segments.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Inside dimension of the long side of the box. The outer dimension will vary with material thickness.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>15</string>
+         <string>100</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QLineEdit" name="kerf">
+        <property name="text">
+         <string>0.35</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Kerf:</string>
+        </property>
+        <property name="buddy">
+         <cstring>kerf</cstring>
         </property>
        </widget>
       </item>
@@ -515,7 +535,7 @@
    <property name="geometry">
     <rect>
      <x>320</x>
-     <y>500</y>
+     <y>440</y>
      <width>101</width>
      <height>20</height>
     </rect>
