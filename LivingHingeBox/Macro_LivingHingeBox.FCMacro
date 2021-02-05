@@ -399,7 +399,9 @@ class Box:
         box = [self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.WE, True, upper_left + offset_h),
                self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.NS, True, lower_right + offset_v),
                self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
-               self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.SN, True, lower_left + offset_v)]
+               self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v)]
+
+        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2, 0)))
 
         arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
         arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
