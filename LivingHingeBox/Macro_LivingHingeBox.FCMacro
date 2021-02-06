@@ -199,7 +199,7 @@ class Hinge:
         # Totally arbitrary values based on T&E
         gap_size = 4
         length = radius * 2 * pi / 4
-        return gap_size, ceil(length / gap_size)
+        return gap_size, ceil(length / (gap_size + 0.35))
 
     @staticmethod
     def calculate_length(radius):
@@ -261,6 +261,7 @@ class Box:
                     self.props[buddy_name] = int(buddy.text()) if buddy_name.startswith('num') else float(buddy.text())
 
         self.props.kerf = 0.35
+        self.props.hingeLength = Hinge.calculate_length(self.props.radius)
 
         if self.props.depth == 0:
             self.props.depth = self.props.width
@@ -290,9 +291,7 @@ class Box:
 
         sketch = self._add_sketch('BoxSide')
 
-        self.props.hingeLength = hinge_length = Hinge.calculate_length(props.radius)
-        self.props.numSegments = Hinge.get_num_segments(props.radius)[1]
-
+        hinge_length = self.props.hingeLength
         thickness = props.thickness
         radius = Hinge.calculate_length(props.radius) / 2
         width = props.width - radius * 2
@@ -384,7 +383,7 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(props.width, props.depth)
 
-        radius = Hinge.calculate_length(props.radius) / 2
+        radius = props.radius
         width = props.width - radius * 2
         depth = props.depth - radius * 2
         offset_h = App.Vector(radius, 0)
@@ -395,26 +394,26 @@ class Box:
                self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
                self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v)]
 
-        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2, 0)))
+        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2)))
 
         arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
         arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
-        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), radius)
+        circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
         sketch.addGeometry(Part.ArcOfCircle(circle, pi, pi * 1.5), False)
 
         arc_start = sketch.Geometry[box[TOP][0]].StartPoint.x
         arc_stop = sketch.Geometry[box[LEFT][-1]].EndPoint.y
-        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), radius)
+        circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
         sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2, pi), False)
 
         arc_start = sketch.Geometry[box[TOP][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][-1]].EndPoint.y
-        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), radius)
+        circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
         sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2), False)
 
         arc_start = sketch.Geometry[box[BOTTOM][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][0]].StartPoint.y
-        circle = Part.Circle(App.Vector(arc_start, arc_stop, 0), App.Vector(0, 0, 1), radius)
+        circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
         sketch.addGeometry(Part.ArcOfCircle(circle, pi * 1.5, 0), False)
 
         if self.constrain:
@@ -504,23 +503,21 @@ class Box:
             if direction == Direction.SN:
                 config.thickness = -config.thickness
 
-            offset_length = App.Vector(0, config.gap - ((props.depth - length) / 2))
+            offset_length = App.Vector(0, config.gap)
             gap_length = App.Vector(0, config.gap)
             tab_length = App.Vector(0, config.tab_width)
             thickness_length = App.Vector(config.thickness, 0)
         else:
-            config.gap = (length - num_tabs * config.tab_width) / (num_tabs + 1)
-            config.offset = config.gap - ((props.width - length) / 2)
-
             if is_bottom:
+                offset_length = App.Vector(config.gap, 0)
                 config.thickness = -props.thickness
             else:
+                offset_length = App.Vector(config.gap + (props.radius - props.hingeLength / 2), 0)
                 config.thickness = props.bottomThickness
 
             if (is_bottom and direction == Direction.WE) or (not is_bottom and direction == Direction.EW):
                 config.thickness = -config.thickness
 
-            offset_length = App.Vector(config.offset, 0)
             gap_length = App.Vector(config.gap, 0)
             tab_length = App.Vector(config.tab_width, 0)
             thickness_length = App.Vector(0, config.thickness)
@@ -619,10 +616,10 @@ class Box:
 
     @staticmethod
     def get_vectors(width, height):
-        lower_left = App.Vector(0, 0, 0)
-        upper_left = App.Vector(0, height, 0)
-        lower_right = App.Vector(width, 0, 0)
-        upper_right = App.Vector(width, height, 0)
+        lower_left = App.Vector(0, 0)
+        upper_left = App.Vector(0, height)
+        lower_right = App.Vector(width, 0)
+        upper_right = App.Vector(width, height)
 
         return lower_left, upper_left, lower_right, upper_right
 
