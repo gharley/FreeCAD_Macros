@@ -199,7 +199,7 @@ class Hinge:
         # Totally arbitrary values based on T&E
         gap_size = 4
         length = radius * 2 * pi / 4
-        return gap_size, ceil(length / (gap_size + 0.35))
+        return gap_size, floor(length / (gap_size - 0.35))
 
     @staticmethod
     def calculate_length(radius):
@@ -275,6 +275,9 @@ class Box:
         if self.props.numTabsDepth == 0:
             self.props.numTabsDepth = self.props.numTabsWidth
 
+        self.props.gapH = (self.props.width - self.props.radius * 2 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1)
+        self.props.gapV = (self.props.depth - self.props.radius * 2 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1)
+
     def build_geometry(self):
         self._init_properties()
 
@@ -288,14 +291,11 @@ class Box:
 
     def build_side(self):
         props = self.props
-
         sketch = self._add_sketch('BoxSide')
 
-        hinge_length = self.props.hingeLength
         thickness = props.thickness
-        radius = Hinge.calculate_length(props.radius) / 2
-        width = props.width - radius * 2
-        depth = props.depth - radius * 2
+        width = props.width - props.radius * 2
+        depth = props.depth - props.radius * 2
         height = props.height
         bottom_thickness = props.bottomThickness
         lid_thickness = props.lidThickness
@@ -351,8 +351,8 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, actual_height)
 
-        short_length = App.Vector(depth - hinge_length, 0)
-        long_length = App.Vector(width - hinge_length, 0)
+        short_length = App.Vector(depth, 0)
+        long_length = App.Vector(width, 0)
 
         hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2)
         hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsWidth, hinge)
@@ -459,10 +459,11 @@ class Box:
         tabs = []
         first = []
         tab_width = self.props.tabWidth
-        gap = (width - num_tabs * tab_width) / (num_tabs + 1)
+        gap = self.props.gapH
         bottom_thickness = self.props.bottomThickness
+        offset = (width - num_tabs * self.props.tabWidth - gap * (num_tabs - 1)) / 2
         offset_length = App.Vector(tab_width + gap, 0)
-        start_point = start_point + App.Vector(gap, -(self.props.lidThickness + bottom_thickness))
+        start_point = start_point + App.Vector(offset, -(self.props.lidThickness + bottom_thickness))
 
         for idx in range(0, num_tabs):
             tab = self.draw_slot(sketch, tab_width, bottom_thickness, start_point + offset_length * idx)
@@ -479,8 +480,8 @@ class Box:
     def draw_edge_tabs(self, sketch, num_tabs, length, direction, is_bottom, start=App.Vector(0, 0)):
         props = self.props
         is_vertical = direction is Direction.NS or direction is Direction.SN
-        config = DotDict({'num_tabs': num_tabs, 'tab_width': props.tabWidth,
-                          'gap': (length - num_tabs * props.tabWidth) / (num_tabs + 1)})
+        gap = props.gapV if is_vertical else props.gapH
+        offset = (length - num_tabs * props.tabWidth - gap * (num_tabs - 1)) / 2
 
         lines = []
 
@@ -498,29 +499,30 @@ class Box:
             return new_index, new_line
 
         if is_vertical:
-            config.thickness = props.thickness
+            offset_length = App.Vector(0, offset)
+
+            thickness = props.thickness
 
             if direction == Direction.SN:
-                config.thickness = -config.thickness
+                thickness = -thickness
 
-            offset_length = App.Vector(0, config.gap)
-            gap_length = App.Vector(0, config.gap)
-            tab_length = App.Vector(0, config.tab_width)
-            thickness_length = App.Vector(config.thickness, 0)
+            gap_length = App.Vector(0, gap)
+            tab_length = App.Vector(0, props.tabWidth)
+            thickness_length = App.Vector(thickness, 0)
         else:
+            offset_length = App.Vector(offset, 0)
+
             if is_bottom:
-                offset_length = App.Vector(config.gap, 0)
-                config.thickness = -props.thickness
+                thickness = -props.thickness
             else:
-                offset_length = App.Vector(config.gap + (props.radius - props.hingeLength / 2), 0)
-                config.thickness = props.bottomThickness
+                thickness = props.bottomThickness
 
             if (is_bottom and direction == Direction.WE) or (not is_bottom and direction == Direction.EW):
-                config.thickness = -config.thickness
+                thickness = -thickness
 
-            gap_length = App.Vector(config.gap, 0)
-            tab_length = App.Vector(config.tab_width, 0)
-            thickness_length = App.Vector(0, config.thickness)
+            gap_length = App.Vector(gap, 0)
+            tab_length = App.Vector(props.tabWidth, 0)
+            thickness_length = App.Vector(0, thickness)
 
         gap_line_index = -1
         first_tab_index = -1
@@ -529,7 +531,7 @@ class Box:
         line_index = -1
         line = Optional[Part.LineSegment]
 
-        for idx in range(0, config.num_tabs):
+        for idx in range(0, num_tabs):
             if idx == 0:
                 line_index, line = add_line(start, offset_length, line_index)
 
@@ -546,7 +548,7 @@ class Box:
                     gap_line_index = line_index
                 #     if self.constrain:
                 #         constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-                #         sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, config.gap))
+                #         sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, gap))
                 # elif self.constrain:
                 #     sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
@@ -556,7 +558,7 @@ class Box:
                 thickness_line_index = line_index
             #     if self.constrain:
             #         constraint_type = 'DistanceX' if is_vertical else 'DistanceY'
-            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, thickness_line_index, config.thickness))
+            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, thickness_line_index, thickness))
             # elif self.constrain:
             #     sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
 
@@ -566,7 +568,7 @@ class Box:
                 first_tab_index = line_index
             #     if self.constrain:
             #         constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, first_tab_index, config.tab_width))
+            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, first_tab_index, props.tabWidth))
             # elif self.constrain:
             #     sketch.addConstraint(Sketcher.Constraint('Equal', first_tab_index, line_index))
 
@@ -579,7 +581,7 @@ class Box:
         # if self.constrain:
         #     index = line_index if direction == Direction.NS or direction == Direction.EW else offset_line_index
         #     constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-        #     sketch.addConstraint(Sketcher.Constraint(constraint_type, index, config.offset))
+        #     sketch.addConstraint(Sketcher.Constraint(constraint_type, index, offset))
 
         return lines
 
