@@ -361,8 +361,8 @@ class Box:
 
         last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
 
-        sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
-        sketch.addGeometry(Part.LineSegment(hinge_bottom + short_length / 2, hinge_top + short_length / 2), False)
+        self.draw_dovetails(sketch, lower_left, upper_left)
+        self.draw_dovetails(sketch, hinge_bottom + short_length / 2, hinge_top + short_length / 2)
 
         if self.box_type != 2:
             self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
@@ -423,6 +423,31 @@ class Box:
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
+
+    def draw_dovetails(self, sketch, start_point, end_point):
+        num_tabs = self.props.numTabsHeight
+        tab_width = self.props.tabWidth
+        height = end_point.y - start_point.y
+        gap = (height - num_tabs * tab_width) / (num_tabs + 1)
+        gap_length = App.Vector(0, gap)
+
+        def draw_dovetail(start):
+            dt_line = Part.LineSegment(start, start + App.Vector(tab_width, -tab_width / 2))
+            sketch.addGeometry(dt_line, False)
+            dt_line = Part.LineSegment(dt_line.EndPoint, dt_line.EndPoint + App.Vector(0, tab_width * 2))
+            sketch.addGeometry(dt_line, False)
+            dt_line = Part.LineSegment(dt_line.EndPoint, dt_line.EndPoint + App.Vector(-tab_width, -tab_width / 2))
+            sketch.addGeometry(dt_line, False)
+
+            return dt_line
+
+        line = Part.LineSegment(start_point, start_point + gap_length)
+        sketch.addGeometry(line, False)
+
+        for idx in range(0, num_tabs):
+            line = draw_dovetail(line.EndPoint)
+            line = Part.LineSegment(line.EndPoint, line.EndPoint + gap_length)
+            sketch.addGeometry(line, False)
 
     def draw_slot(self, sketch, width, height, start_point=None):
         if start_point is None:
