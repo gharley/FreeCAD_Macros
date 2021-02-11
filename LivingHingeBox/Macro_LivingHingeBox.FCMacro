@@ -47,13 +47,15 @@ class DotDict(dict):
 
 
 class Hinge:
-    DEFAULT_KERF = 0.2
+    num_segments = 6
+    radius = 15
+    segment_width = 3
+    thickness = 3
 
-    def __init__(self, sketch, height, thickness, radius, start_point=None, constrain=False):
+    def __init__(self, sketch, height, radius, start_point=None, constrain=False):
         self.sketch = sketch
         self.constrain = constrain
         self.height = height
-        self.thickness = thickness
 
         if start_point is None:
             start_point = App.Vector(0, 0)
@@ -67,8 +69,6 @@ class Hinge:
         self.bottom_line_index = -1
         self.offset_line_index = -1
 
-        self.gap_size, self.num_segments = self.get_num_segments(radius)
-
         self._outer_lines = []
         self._inner_lines = []
 
@@ -77,9 +77,6 @@ class Hinge:
 
     @property
     def outer_lines(self): return self._outer_lines
-
-    @property
-    def length(self): return self.gap_size * self.num_segments
 
     @property
     def start_point(self): return self._start_point
@@ -149,11 +146,11 @@ class Hinge:
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.gap_h_line_index, index))
 
     def draw(self):
-        hinge_length = App.Vector(self.length, 0)
+        hinge_length = App.Vector(self.length(), 0)
         hinge_height = App.Vector(0, self.height)
         long_length = App.Vector(0, self.height - self.thickness * 2)
         gap_length_v = App.Vector(0, self.thickness * 2)
-        gap_length_h = App.Vector(self.gap_size, 0)
+        gap_length_h = App.Vector(self.segment_width, 0)
 
         self.bottom_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point, self.start_point + hinge_length), False)
         if self.constrain:
@@ -169,7 +166,7 @@ class Hinge:
         for idx in range(0, self.num_segments):
             self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
 
-            long_start = self.get_line_from_index(self._outer_lines[-1]).EndPoint - (gap_length_h / 2) + (gap_length_v / 2)
+            long_start = self.sketch.Geometry[self._outer_lines[-1]].EndPoint - (gap_length_h / 2) + (gap_length_v / 2)
             line_index, inner_line = self.add_line(long_start, long_length, self._inner_lines)
             if self.constrain:
                 self.sketch.addConstraint(Sketcher.Constraint('Vertical', line_index))
@@ -191,20 +188,12 @@ class Hinge:
 
         self.add_short_lines(long_length / 2, gap_length_v, gap_length_h)
 
-    def get_line_from_index(self, index):
-        return self.sketch.Geometry[index]
+    @staticmethod
+    def arc_length():
+        return Hinge.radius * 2 * pi / 4
 
     @staticmethod
-    def get_num_segments(radius):
-        # Totally arbitrary values based on T&E
-        gap_size = 4
-        length = radius * 2 * pi / 4
-        return gap_size, floor(length / (gap_size - 0.35))
-
-    @staticmethod
-    def calculate_length(radius):
-        gap_size, num_segments = Hinge.get_num_segments(radius)
-        return num_segments * gap_size
+    def length(): return Hinge.segment_width * Hinge.num_segments
 
 
 class Box:
@@ -260,9 +249,6 @@ class Box:
                 else:
                     self.props[buddy_name] = int(buddy.text()) if buddy_name.startswith('num') else float(buddy.text())
 
-        self.props.kerf = 0.35
-        self.props.hingeLength = Hinge.calculate_length(self.props.radius)
-
         if self.props.depth == 0:
             self.props.depth = self.props.width
 
@@ -277,6 +263,13 @@ class Box:
 
         self.props.gapH = (self.props.width - self.props.radius * 2 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1)
         self.props.gapV = (self.props.depth - self.props.radius * 2 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1)
+
+        Hinge.radius = self.props.radius
+        Hinge.thickness = self.props.thickness
+        Hinge.num_segments = self.props.numSegments
+        Hinge.segment_width = self.props.segmentWidth
+
+        self.props.hingeLength = Hinge.length()
 
     def build_geometry(self):
         self._init_properties()
@@ -294,8 +287,9 @@ class Box:
         sketch = self._add_sketch('BoxSide')
 
         thickness = props.thickness
-        width = props.width - props.radius * 2
-        depth = props.depth - props.radius * 2
+        adjust = Hinge.length() - Hinge.arc_length()
+        width = props.width - props.radius * 2 - adjust
+        depth = props.depth - props.radius * 2 - adjust
         height = props.height
         bottom_thickness = props.bottomThickness
         lid_thickness = props.lidThickness
@@ -337,15 +331,15 @@ class Box:
                     sketch.addConstraint(Sketcher.Constraint('DistanceX', top_line, START, slots[0][TOP], START, gap))
                     sketch.addConstraint(Sketcher.Constraint('DistanceY', top_line, START, slots[0][TOP], START, -props.lidThickness))
 
-            new_hinge = Hinge(sketch, actual_height, thickness, props.radius, bottom_start + length, constrain=self.constrain)
+            new_hinge = Hinge(sketch, actual_height, props.radius, bottom_start + length, constrain=self.constrain)
             new_hinge.draw()
 
             if self.constrain:
                 sketch.addConstraint(Sketcher.Constraint('Coincident', top_line, END, new_hinge.top_line_index, START))
                 sketch.addConstraint(Sketcher.Constraint('Coincident', bottom_line[-1], END, new_hinge.bottom_line_index, START))
 
-            top = new_hinge.get_line_from_index(new_hinge.top_line_index).EndPoint
-            bottom = new_hinge.get_line_from_index(new_hinge.bottom_line_index).EndPoint
+            top = sketch.Geometry[new_hinge.top_line_index].EndPoint
+            bottom = sketch.Geometry[new_hinge.bottom_line_index].EndPoint
 
             return new_hinge, top, bottom
 
