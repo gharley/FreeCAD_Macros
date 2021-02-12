@@ -190,10 +190,10 @@ class Hinge:
 
     @staticmethod
     def arc_length():
-        return Hinge.radius * 2 * pi / 4
+        return Hinge.radius * 2.0 * pi / 4.0
 
     @staticmethod
-    def length(): return Hinge.segment_width * Hinge.num_segments
+    def length(): return float(Hinge.segment_width * Hinge.num_segments)
 
 
 class Box:
@@ -261,15 +261,15 @@ class Box:
         if self.props.numTabsDepth == 0:
             self.props.numTabsDepth = self.props.numTabsWidth
 
-        self.props.gapH = (self.props.width - self.props.radius * 2 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1)
-        self.props.gapV = (self.props.depth - self.props.radius * 2 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1)
+        self.props.gapH = float((self.props.width - self.props.radius * 2.0 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1))
+        self.props.gapV = float((self.props.depth - self.props.radius * 2.0 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1))
 
         Hinge.radius = self.props.radius
         Hinge.thickness = self.props.thickness
         Hinge.num_segments = self.props.numSegments
         Hinge.segment_width = self.props.segmentWidth
 
-        self.props.hingeLength = Hinge.length()
+        self.props.adjust = max(Hinge.length(), Hinge.arc_length()) + (self.props.radius * 2 - Hinge.arc_length())
 
     def build_geometry(self):
         self._init_properties()
@@ -286,16 +286,14 @@ class Box:
         props = self.props
         sketch = self._add_sketch('BoxSide')
 
-        thickness = props.thickness
-        adjust = Hinge.length() - Hinge.arc_length()
-        width = props.width - props.radius * 2 - adjust
-        depth = props.depth - props.radius * 2 - adjust
+        width = float(props.width - props.adjust)
+        depth = float(props.depth - props.adjust)
         height = props.height
         bottom_thickness = props.bottomThickness
         lid_thickness = props.lidThickness
 
         if self.box_type == 0:
-            actual_height = height + lid_thickness + bottom_thickness * 2
+            actual_height = height + lid_thickness + bottom_thickness * 2.0
         elif self.box_type == 1:
             actual_height = height + lid_thickness + bottom_thickness
         else:
@@ -327,7 +325,7 @@ class Box:
             if self.box_type != 2:
                 slots = self.draw_slots(sketch, num_tabs, length.x, top_start)
                 if self.constrain:
-                    gap = (length.x - props.tabWidth * num_tabs) / (num_tabs + 1)
+                    gap = float((length.x - props.tabWidth * num_tabs) / (num_tabs + 1))
                     sketch.addConstraint(Sketcher.Constraint('DistanceX', top_line, START, slots[0][TOP], START, gap))
                     sketch.addConstraint(Sketcher.Constraint('DistanceY', top_line, START, slots[0][TOP], START, -props.lidThickness))
 
@@ -346,17 +344,18 @@ class Box:
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, actual_height)
 
         short_length = App.Vector(depth, 0)
+        end_adjust = App.Vector(props.adjust / 2.0, 0)
         long_length = App.Vector(width, 0)
 
-        hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2)
+        hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2.0 + end_adjust)
         hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsWidth, hinge)
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, short_length, props.numTabsDepth, hinge)
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, props.numTabsWidth, hinge)
 
-        last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2)
+        last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2.0 + end_adjust)
 
         self.draw_dovetails(sketch, lower_left, upper_left)
-        self.draw_dovetails(sketch, hinge_bottom + short_length / 2, hinge_top + short_length / 2)
+        self.draw_dovetails(sketch, hinge_bottom + short_length / 2 + end_adjust, hinge_top + short_length / 2.0 + end_adjust)
 
         if self.box_type != 2:
             self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
@@ -378,17 +377,17 @@ class Box:
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(props.width, props.depth)
 
         radius = props.radius
-        width = props.width - radius * 2
-        depth = props.depth - radius * 2
+        width = props.width - radius * 2.0
+        depth = props.depth - radius * 2.0
         offset_h = App.Vector(radius, 0)
         offset_v = App.Vector(0, radius)
 
         box = [self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.WE, True, upper_left + offset_h),
                self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.NS, True, lower_right + offset_v),
                self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
-               self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v)]
+               self.draw_edge_tabs(sketch, 1, depth / 2.0, Direction.SN, True, lower_left + offset_v)]
 
-        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2)))
+        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2.0, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2.0)))
 
         arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
         arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
@@ -398,12 +397,12 @@ class Box:
         arc_start = sketch.Geometry[box[TOP][0]].StartPoint.x
         arc_stop = sketch.Geometry[box[LEFT][-1]].EndPoint.y
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2, pi), False)
+        sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2.0, pi), False)
 
         arc_start = sketch.Geometry[box[TOP][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][-1]].EndPoint.y
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2), False)
+        sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2.0), False)
 
         arc_start = sketch.Geometry[box[BOTTOM][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][0]].StartPoint.y
@@ -500,7 +499,7 @@ class Box:
         props = self.props
         is_vertical = direction is Direction.NS or direction is Direction.SN
         gap = props.gapV if is_vertical else props.gapH
-        offset = (length - num_tabs * props.tabWidth - gap * (num_tabs - 1)) / 2
+        offset = (length - num_tabs * props.tabWidth - gap * (num_tabs - 1)) / 2.0
 
         lines = []
 
