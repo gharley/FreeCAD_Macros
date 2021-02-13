@@ -269,7 +269,7 @@ class Box:
         Hinge.num_segments = self.props.numSegments
         Hinge.segment_width = self.props.segmentWidth
 
-        self.props.adjust = max(Hinge.length(), Hinge.arc_length()) + (self.props.radius * 2 - Hinge.arc_length())
+        self.props.adjust = (Hinge.radius * 2 - Hinge.arc_length()) + Hinge.length()
 
     def build_geometry(self):
         self._init_properties()
@@ -344,18 +344,17 @@ class Box:
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, actual_height)
 
         short_length = App.Vector(depth, 0)
-        end_adjust = App.Vector(props.adjust / 2.0, 0)
         long_length = App.Vector(width, 0)
 
-        hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2.0 + end_adjust)
+        hinge, first_top, first_bottom = draw_side(upper_left, lower_left, short_length / 2.0)
         hinge, hinge_top, hinge_bottom = draw_side(first_top, first_bottom, long_length, props.numTabsWidth, hinge)
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, short_length, props.numTabsDepth, hinge)
         hinge, hinge_top, hinge_bottom = draw_side(hinge_top, hinge_bottom, long_length, props.numTabsWidth, hinge)
 
-        last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2.0 + end_adjust)
+        last_top, last_bottom = draw_lines(hinge_top, hinge_bottom, short_length / 2.0)
 
         self.draw_dovetails(sketch, lower_left, upper_left)
-        self.draw_dovetails(sketch, hinge_bottom + short_length / 2 + end_adjust, hinge_top + short_length / 2.0 + end_adjust)
+        self.draw_dovetails(sketch, hinge_bottom + short_length / 2, hinge_top + short_length / 2.0)
 
         if self.box_type != 2:
             self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
