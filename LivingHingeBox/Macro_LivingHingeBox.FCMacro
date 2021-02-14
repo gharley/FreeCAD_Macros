@@ -380,13 +380,12 @@ class Box:
         depth = props.depth - radius * 2.0
         offset_h = App.Vector(radius, 0)
         offset_v = App.Vector(0, radius)
+        last_gap = ((props.depth - props.adjust) / 2.0 - props.tabWidth)
 
         box = [self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.WE, True, upper_left + offset_h),
                self.draw_edge_tabs(sketch, props.numTabsDepth, depth, Direction.NS, True, lower_right + offset_v),
                self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
-               self.draw_edge_tabs(sketch, 1, depth / 2.0, Direction.SN, True, lower_left + offset_v)]
-
-        box[LEFT].extend(self.draw_edge_tabs(sketch, 1, depth / 2.0, Direction.SN, True, lower_left + offset_v + App.Vector(0, depth / 2.0)))
+               self.draw_edge_tabs(sketch, 2, depth, Direction.SN, True, lower_left + offset_v, last_gap)]
 
         arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
         arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
@@ -494,10 +493,13 @@ class Box:
 
         return tabs
 
-    def draw_edge_tabs(self, sketch, num_tabs, length, direction, is_bottom, start=App.Vector(0, 0)):
+    def draw_edge_tabs(self, sketch, num_tabs, length, direction, is_bottom, start, gap=None):
         props = self.props
         is_vertical = direction is Direction.NS or direction is Direction.SN
-        gap = props.gapV if is_vertical else props.gapH
+
+        if gap is None:
+            gap = props.gapV if is_vertical else props.gapH
+
         offset = (length - num_tabs * props.tabWidth - gap * (num_tabs - 1)) / 2.0
 
         lines = []
