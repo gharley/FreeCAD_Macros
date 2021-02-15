@@ -53,7 +53,7 @@ class Hinge:
     segment_width = 3
     thickness = 3
 
-    def __init__(self, sketch, height, radius, start_point=None, constrain=False):
+    def __init__(self, sketch, height, start_point=None, constrain=False):
         self.sketch = sketch
         self.constrain = constrain
         self.height = height
@@ -214,30 +214,31 @@ class Box:
 
         self._init_dialog()
         self.dialog.show()
-        # self._update_image(0)
+        self._update_image(0)
         self.dialog.exec_()
 
-    # def _update_image(self, box_type):
-    #     if not isinstance(self.widget, QtSvg.QSvgWidget):
-    #         self.widget = QtSvg.QSvgWidget(self.dialog)
-    #         self.widget.setGeometry(self.image.geometry())
-    #
-    #     if box_type == 0:
-    #         self.widget.renderer().load(self.macro_dir + 'end_all.svg')
-    #     elif box_type == 1:
-    #         self.widget.renderer().load(self.macro_dir + 'end_slots.svg')
-    #     else:
-    #         self.widget.renderer().load(self.macro_dir + 'end_edge.svg')
-    #
-    #     self.widget.show()
+    def _update_image(self, box_type):
+        if not isinstance(self.widget, QtSvg.QSvgWidget):
+            self.widget = QtSvg.QSvgWidget(self.dialog)
+            self.widget.setGeometry(self.image.geometry())
+
+        if box_type == 0:
+            self.widget.renderer().load(self.macro_dir + 'end_all.svg')
+        elif box_type == 1:
+            self.widget.renderer().load(self.macro_dir + 'end_slots.svg')
+        else:
+            self.widget.renderer().load(self.macro_dir + 'end_edge.svg')
+
+        self.widget.show()
 
     def _init_dialog(self):
         self.dialog = Gui.PySideUic.loadUi('{0}Macro_LivingHingeBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Living hinge box")
-        # self.image = self.dialog.findChild(QtGui.QLabel, 'image')
+        self.dialog.chkConstrain.setVisible(False)
+        self.image = self.dialog.findChild(QtGui.QLabel, 'image')
 
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL('accepted()'), self.build_geometry)
-        # QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self._update_image)
+        QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self._update_image)
 
     def _init_properties(self):
         for obj in self.dialog.findChildren(QtGui.QLabel):
@@ -330,7 +331,7 @@ class Box:
                     sketch.addConstraint(Sketcher.Constraint('DistanceX', top_line, START, slots[0][TOP], START, gap))
                     sketch.addConstraint(Sketcher.Constraint('DistanceY', top_line, START, slots[0][TOP], START, -props.lidThickness))
 
-            new_hinge = Hinge(sketch, actual_height, props.radius, bottom_start + length, constrain=self.constrain)
+            new_hinge = Hinge(sketch, actual_height, bottom_start + length, self.constrain)
             new_hinge.draw()
 
             if self.constrain:
@@ -465,34 +466,6 @@ class Box:
             line = Part.LineSegment(line.EndPoint, line.EndPoint + gap_length)
             sketch.addGeometry(line, False)
 
-    def draw_slot(self, sketch, width, height, start_point=None):
-        if start_point is None:
-            start_point = App.Vector(0, 0)
-        lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
-
-        top = sketch.addGeometry(Part.LineSegment(upper_left + start_point, upper_right + start_point), False)
-        right = sketch.addGeometry(Part.LineSegment(lower_right + start_point, upper_right + start_point), False)
-        bottom = sketch.addGeometry(Part.LineSegment(lower_left + start_point, lower_right + start_point), False)
-        left = sketch.addGeometry(Part.LineSegment(lower_left + start_point, upper_left + start_point), False)
-
-        box = [top, right, bottom, left]
-
-        if self.constrain:
-            sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
-            sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
-            sketch.addConstraint(Sketcher.Constraint('Vertical', left))
-            sketch.addConstraint(Sketcher.Constraint('Vertical', right))
-
-            sketch.addConstraint(Sketcher.Constraint('Coincident', top, END, right, END))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', right, START, bottom, END))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, START, left, START))
-            sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
-
-            sketch.addConstraint(Sketcher.Constraint('DistanceY', left, height))
-            sketch.addConstraint(Sketcher.Constraint('DistanceX', top, width))
-
-        return box
-
     def draw_slots(self, sketch, num_tabs, width, start_point):
         if start_point is None:
             start_point = App.Vector(0, 0)
@@ -506,8 +479,34 @@ class Box:
         offset_length = App.Vector(tab_width + gap, 0)
         start_point = start_point + App.Vector(offset, -(self.props.lidThickness + bottom_thickness))
 
+        def draw_slot(start):
+            lower_left, upper_left, lower_right, upper_right = self.get_vectors(tab_width, bottom_thickness)
+
+            top = sketch.addGeometry(Part.LineSegment(upper_left + start, upper_right + start), False)
+            right = sketch.addGeometry(Part.LineSegment(lower_right + start, upper_right + start), False)
+            bottom = sketch.addGeometry(Part.LineSegment(lower_left + start, lower_right + start), False)
+            left = sketch.addGeometry(Part.LineSegment(lower_left + start, upper_left + start), False)
+
+            box = [top, right, bottom, left]
+
+            if self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
+                sketch.addConstraint(Sketcher.Constraint('Horizontal', bottom))
+                sketch.addConstraint(Sketcher.Constraint('Vertical', left))
+                sketch.addConstraint(Sketcher.Constraint('Vertical', right))
+
+                sketch.addConstraint(Sketcher.Constraint('Coincident', top, END, right, END))
+                sketch.addConstraint(Sketcher.Constraint('Coincident', right, START, bottom, END))
+                sketch.addConstraint(Sketcher.Constraint('Coincident', bottom, START, left, START))
+                sketch.addConstraint(Sketcher.Constraint('Coincident', left, END, top, START))
+
+                sketch.addConstraint(Sketcher.Constraint('DistanceY', left, bottom_thickness))
+                sketch.addConstraint(Sketcher.Constraint('DistanceX', top, tab_width))
+
+            return box
+
         for idx in range(0, num_tabs):
-            tab = self.draw_slot(sketch, tab_width, bottom_thickness, start_point + offset_length * idx)
+            tab = draw_slot(start_point + offset_length * idx)
             tabs.append(tab)
 
             if idx == 0:

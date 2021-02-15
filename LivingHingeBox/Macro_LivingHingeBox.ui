@@ -115,7 +115,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Only necessary if bottom material is a different thickness than the sides. If set to 0, uses &lt;span style=&quot; font-style:italic;&quot;&gt;material thickness&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>3.6</string>
+         <string>0</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -219,7 +219,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The thickness of the box material, used to calculate tab and slot sizes.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>6.5</string>
+         <string>3</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -336,7 +336,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the width of tabs and slots.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>8</string>
+         <string>6</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -365,7 +365,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the long side of the box.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>3</string>
+         <string>4</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -446,7 +446,7 @@
       <item row="4" column="1">
        <widget class="QLineEdit" name="segmentWidth">
         <property name="text">
-         <string>4</string>
+         <string>3</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -479,7 +479,7 @@
       <item row="3" column="1">
        <widget class="QLineEdit" name="numSegments">
         <property name="text">
-         <string>9</string>
+         <string>6</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -513,10 +513,10 @@
   <widget class="QLabel" name="image">
    <property name="geometry">
     <rect>
-     <x>320</x>
-     <y>200</y>
+     <x>250</x>
+     <y>240</y>
      <width>90</width>
-     <height>147</height>
+     <height>131</height>
     </rect>
    </property>
    <property name="text">
@@ -562,6 +562,9 @@
    </layout>
   </widget>
   <widget class="QCheckBox" name="chkConstrain">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>240</x>
@@ -575,6 +578,9 @@
    </property>
    <property name="text">
     <string>Add Constraints</string>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
    </property>
   </widget>
  </widget>
@@ -606,8 +612,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>240</x>
+     <y>70</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -622,8 +628,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>240</x>
+     <y>70</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
