@@ -21,6 +21,7 @@ App = FreeCAD
 # Indexes for geoid
 START = 1
 END = 2
+CENTER = 3
 ORIGIN = -1
 
 # Indexes for box sides
@@ -387,30 +388,54 @@ class Box:
                self.draw_edge_tabs(sketch, props.numTabsWidth, width, Direction.EW, True, lower_left + offset_h),
                self.draw_edge_tabs(sketch, 2, depth, Direction.SN, True, lower_left + offset_v, last_gap)]
 
+        if self.constrain:
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, depth))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[LEFT][-1], END, box[TOP][0], START, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][-1], END, box[TOP][0], START, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][-1], END, box[RIGHT][-1], END, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][-1], END, box[TOP][-1], END, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[LEFT][0], START, box[BOTTOM][0], START, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[BOTTOM][0], START, box[LEFT][0], START, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[BOTTOM][-1], END, box[RIGHT][0], START, radius))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[BOTTOM][-1], END, box[RIGHT][0], START, radius))
+
         arc_stop = sketch.Geometry[box[LEFT][0]].StartPoint.y
         arc_start = sketch.Geometry[box[BOTTOM][0]].StartPoint.x
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, pi, pi * 1.5), False)
+        bl = sketch.addGeometry(Part.ArcOfCircle(circle, pi, pi * 1.5), False)
 
         arc_start = sketch.Geometry[box[TOP][0]].StartPoint.x
         arc_stop = sketch.Geometry[box[LEFT][-1]].EndPoint.y
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2.0, pi), False)
+        tl = sketch.addGeometry(Part.ArcOfCircle(circle, pi / 2.0, pi), False)
 
         arc_start = sketch.Geometry[box[TOP][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][-1]].EndPoint.y
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2.0), False)
+        tr = sketch.addGeometry(Part.ArcOfCircle(circle, 0, pi / 2.0), False)
 
         arc_start = sketch.Geometry[box[BOTTOM][-1]].EndPoint.x
         arc_stop = sketch.Geometry[box[RIGHT][0]].StartPoint.y
         circle = Part.Circle(App.Vector(arc_start, arc_stop), App.Vector(0, 0, 1), radius)
-        sketch.addGeometry(Part.ArcOfCircle(circle, pi * 1.5, 0), False)
+        br = sketch.addGeometry(Part.ArcOfCircle(circle, pi * 1.5, 0), False)
 
         if self.constrain:
-            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
-            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, depth))
-            sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
+            sketch.addConstraint(Sketcher.Constraint('Radius', tl, props.radius))
+            sketch.addConstraint(Sketcher.Constraint('Radius', bl, props.radius))
+            sketch.addConstraint(Sketcher.Constraint('Radius', tr, props.radius))
+            sketch.addConstraint(Sketcher.Constraint('Radius', br, props.radius))
+
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][0], START, tl, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][-1], END, tl, END))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][0], START, bl, END))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[LEFT][0], START, bl, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[BOTTOM][-1], END, br, START))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT][0], START, br, END))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[TOP][-1], END, tr, END))
+            sketch.addConstraint(Sketcher.Constraint('Coincident', box[RIGHT][-1], END, tr, START))
+
+            sketch.addConstraint(Sketcher.Constraint('Symmetric', box[LEFT][-1], END, box[RIGHT][0], START, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -508,10 +533,10 @@ class Box:
             end_point = start_point + end_offset
             new_line = Part.LineSegment(start_point, end_point)
             new_index = sketch.addGeometry(new_line, False)
-            #
-            # if self.constrain and previous != -1:
-            #     sketch.addConstraint(Sketcher.Constraint('Coincident', previous, END, new_index, START))
-            #     sketch.addConstraint(Sketcher.Constraint('Perpendicular', previous, new_index))
+
+            if self.constrain and previous != -1:
+                sketch.addConstraint(Sketcher.Constraint('Coincident', previous, END, new_index, START))
+                sketch.addConstraint(Sketcher.Constraint('Perpendicular', previous, new_index))
 
             lines.append(new_index)
 
@@ -555,52 +580,52 @@ class Box:
                 line_index, line = add_line(start, offset_length, line_index)
 
                 offset_line_index = line_index
-                # if self.constrain:
-                #     if is_vertical:
-                #         sketch.addConstraint(Sketcher.Constraint('Vertical', offset_line_index))
-                #     else:
-                #         sketch.addConstraint(Sketcher.Constraint('Horizontal', offset_line_index))
+                if self.constrain:
+                    if is_vertical:
+                        sketch.addConstraint(Sketcher.Constraint('Vertical', offset_line_index))
+                    else:
+                        sketch.addConstraint(Sketcher.Constraint('Horizontal', offset_line_index))
             else:
                 line_index, line = add_line(line.EndPoint, gap_length, line_index)
 
                 if gap_line_index == -1:
                     gap_line_index = line_index
-                #     if self.constrain:
-                #         constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-                #         sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, gap))
-                # elif self.constrain:
-                #     sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
+                    if self.constrain:
+                        constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
+                        sketch.addConstraint(Sketcher.Constraint(constraint_type, gap_line_index, gap))
+                elif self.constrain:
+                    sketch.addConstraint(Sketcher.Constraint('Equal', gap_line_index, line_index))
 
             line_index, line = add_line(line.EndPoint, thickness_length, line_index)
 
             if idx == 0:
                 thickness_line_index = line_index
-            #     if self.constrain:
-            #         constraint_type = 'DistanceX' if is_vertical else 'DistanceY'
-            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, thickness_line_index, thickness))
-            # elif self.constrain:
-            #     sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
+                if self.constrain:
+                    constraint_type = 'DistanceX' if is_vertical else 'DistanceY'
+                    sketch.addConstraint(Sketcher.Constraint(constraint_type, thickness_line_index, thickness))
+            elif self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
 
             line_index, line = add_line(line.EndPoint, tab_length, line_index)
 
             if idx == 0:
                 first_tab_index = line_index
-            #     if self.constrain:
-            #         constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-            #         sketch.addConstraint(Sketcher.Constraint(constraint_type, first_tab_index, props.tabWidth))
-            # elif self.constrain:
-            #     sketch.addConstraint(Sketcher.Constraint('Equal', first_tab_index, line_index))
+                if self.constrain:
+                    constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
+                    sketch.addConstraint(Sketcher.Constraint(constraint_type, first_tab_index, props.tabWidth))
+            elif self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Equal', first_tab_index, line_index))
 
             line_index, line = add_line(line.EndPoint, -thickness_length, line_index)
-            # if self.constrain:
-            #     sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
+            if self.constrain:
+                sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
 
         line_index, line = add_line(line.EndPoint, offset_length, line_index)
 
-        # if self.constrain:
-        #     index = line_index if direction == Direction.NS or direction == Direction.EW else offset_line_index
-        #     constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-        #     sketch.addConstraint(Sketcher.Constraint(constraint_type, index, offset))
+        if self.constrain:
+            index = line_index if direction == Direction.NS or direction == Direction.EW else offset_line_index
+            constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
+            sketch.addConstraint(Sketcher.Constraint(constraint_type, index, offset))
 
         return lines
 
