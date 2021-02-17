@@ -274,7 +274,7 @@ class Box:
             sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
         if self.box_type != 2:
-            tab = tab_func(sketch)
+            tab = tab_func(sketch, actual_height)
 
             if self.constrain:
                 sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, tab[TOP][0], START, self.props.sideGap if face is Face.SIDE else self.props.endGap))
@@ -322,13 +322,13 @@ class Box:
     def build_short_side(self):
         self._build_side('BoxEnd', Face.END, self.draw_end_slots)
 
-    def draw_slot(self, sketch, width, height):
+    def draw_slot(self, sketch, width, height, offset):
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, height)
 
-        top = sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)
-        right = sketch.addGeometry(Part.LineSegment(upper_right, lower_right), False)
-        bottom = sketch.addGeometry(Part.LineSegment(lower_right, lower_left), False)
-        left = sketch.addGeometry(Part.LineSegment(lower_left, upper_left), False)
+        top = sketch.addGeometry(Part.LineSegment(upper_left + offset, upper_right + offset), False)
+        right = sketch.addGeometry(Part.LineSegment(lower_right + offset, upper_right + offset), False)
+        bottom = sketch.addGeometry(Part.LineSegment(lower_left + offset, lower_right + offset), False)
+        left = sketch.addGeometry(Part.LineSegment(lower_left + offset, upper_left + offset), False)
 
         if self.constrain:
             sketch.addConstraint(Sketcher.Constraint('Horizontal', top))
@@ -347,14 +347,14 @@ class Box:
 
         return [top, right, bottom, left]
 
-    def _draw_slots(self, sketch, num_tabs, gap):
+    def _draw_slots(self, sketch, num_tabs, gap, start):
         tabs = []
         first = []
         tab_width = self.props.tabWidth
         bottom_thickness = self.props.bottomThickness
 
         for idx in range(0, num_tabs):
-            tab = self.draw_slot(sketch, tab_width, bottom_thickness)
+            tab = self.draw_slot(sketch, tab_width, bottom_thickness, start + App.Vector((tab_width + gap) * idx, 0))
             tabs.append(tab)
 
             if idx == 0:
@@ -365,15 +365,18 @@ class Box:
 
         return tabs
 
-    def draw_end_slots(self, sketch):
-        return self._draw_slots(sketch, self.props.numTabsDepth, self.props.endGap)
+    def draw_end_slots(self, sketch, height):
+        start = App.Vector(self.props.endGap, height - self.props.lidThickness - self.props.bottomThickness)
+        return self._draw_slots(sketch, self.props.numTabsDepth, self.props.endGap, start)
 
-    def draw_side_slots(self, sketch):
-        return self._draw_slots(sketch, self.props.numTabsWidth, self.props.sideGap)
+    def draw_side_slots(self, sketch, height):
+        start = App.Vector(self.props.sideGap, height - self.props.lidThickness - self.props.bottomThickness)
+        return self._draw_slots(sketch, self.props.numTabsWidth, self.props.sideGap, start)
 
     def draw_edge_tabs(self, sketch, face, direction, is_inset, length, start):
         is_vertical = direction is Direction.NS or direction is Direction.SN
         config = DotDict()
+        config.tabWidth = self.props.tabWidth
 
         lines = []
 
@@ -391,8 +394,6 @@ class Box:
             return new_index, new_line
 
         if is_vertical:
-            config.tabWidth = -self.props.tabWidth
-
             if face is Face.BOTTOM:
                 config.numTabs = self.props.numTabsDepth
                 config.gap = self.props.endGap
@@ -402,11 +403,9 @@ class Box:
 
             config.thickness = self.props.thickness
 
-            if (is_inset and direction == Direction.SN) or (not is_inset and direction == Direction.NS):
+            if (is_inset and direction == Direction.NS) or (not is_inset and direction == Direction.SN):
                 config.thickness = -config.thickness
         else:
-            config.tabWidth = self.props.tabWidth
-
             if face is Face.SIDE or face is Face.BOTTOM:
                 config.numTabs = self.props.numTabsWidth
                 config.gap = self.props.sideGap
@@ -423,15 +422,13 @@ class Box:
                 config.thickness = -config.thickness
 
         config.offset = (length - config.numTabs * config.tabWidth - config.gap * (config.numTabs - 1)) / 2.0
+
         if is_vertical:
             offset_length = App.Vector(0, config.offset)
             gap_length = App.Vector(0, config.gap)
             tab_length = App.Vector(0, config.tabWidth)
             thickness_length = App.Vector(config.thickness, 0)
         else:
-            if face is not BOTTOM:
-                config.offset += self.props.thickness
-
             offset_length = App.Vector(config.offset, 0)
             gap_length = App.Vector(config.gap, 0)
             tab_length = App.Vector(config.tabWidth, 0)
