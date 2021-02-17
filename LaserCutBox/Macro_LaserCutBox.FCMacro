@@ -284,34 +284,24 @@ class Box:
         Gui.ActiveDocument.ActiveView.fitAll()
 
     def build_bottom(self):
-        sheet = self.worksheet
-        sheet_prefix = self.get_sheet_expression_prefix()
-
         sketch = self._add_sketch('BoxBottom')
 
-        width = sheet.width
-        width_expression = '{0}width'.format(sheet_prefix)
-
-        depth = sheet.depth
-        depth_expression = '-{0}depth'.format(sheet_prefix)
+        width = self.props.width
+        depth = self.props.depth
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
 
-        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False, upper_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False, upper_right),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False, lower_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False, upper_left)]
+        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False, width, upper_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False, depth, lower_right),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False, width, lower_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False, depth, lower_left)]
 
-        self._constrain_sides(sketch, box)
+        if self.constrain:
+            self._constrain_sides(sketch, box)
 
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), width_expression)
-
-        constraint = sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -depth))
-        sketch.setExpression("Constraints[{0}]".format(str(constraint)), depth_expression)
-
-        sketch.movePoint(box[TOP][0], START, App.Vector(-width / 2, depth / 2, 0))
-        sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
+            sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, box[TOP][-1], END, width))
+            sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -depth))
+            sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()
@@ -421,18 +411,32 @@ class Box:
             if (is_inset and direction == Direction.WE) or (not is_inset and direction == Direction.EW):
                 config.thickness = -config.thickness
 
-        config.offset = (length - config.numTabs * config.tabWidth - config.gap * (config.numTabs - 1)) / 2.0
+        config.longOffset = (length - config.numTabs * config.tabWidth - config.gap * (config.numTabs - 1)) / 2.0
 
         if is_vertical:
-            offset_length = App.Vector(0, config.offset)
+            first_offset = last_offset = App.Vector(0, config.longOffset)
+
+            if face is Face.BOTTOM:
+                offset = App.Vector(0, config.thickness)
+                first_offset -= offset
+                last_offset += offset
+
             gap_length = App.Vector(0, config.gap)
             tab_length = App.Vector(0, config.tabWidth)
             thickness_length = App.Vector(config.thickness, 0)
         else:
-            if face is not Face.BOTTOM:
-                config.offset -= config.thickness / 2
+            first_offset = last_offset = App.Vector(config.longOffset, 0)
 
-            offset_length = App.Vector(config.offset, 0)
+            offset = App.Vector(config.thickness, 0)
+            first_offset = App.Vector(config.longOffset, 0) + offset
+            last_offset = App.Vector(config.longOffset, 0) - offset
+            # if direction is Direction.EW:
+            #     first_offset -= offset
+            #     last_offset += offset
+            # else:
+            #     first_offset += offset
+            #     last_offset -= offset
+
             gap_length = App.Vector(config.gap, 0)
             tab_length = App.Vector(config.tabWidth, 0)
             thickness_length = App.Vector(0, config.thickness)
@@ -446,7 +450,7 @@ class Box:
 
         for idx in range(0, int(config.numTabs)):
             if idx == 0:
-                line_index, line = add_line(start, offset_length, line_index)
+                line_index, line = add_line(start, first_offset, line_index)
 
                 offset_line_index = line_index
 
@@ -492,14 +496,11 @@ class Box:
             line_index, line = add_line(line.EndPoint, -thickness_length, line_index)
             sketch.addConstraint(Sketcher.Constraint('Equal', thickness_line_index, line_index))
 
-        if not is_vertical and face is not Face.BOTTOM:
-            offset_length += App.Vector(config.thickness, 0)
-
-        add_line(line.EndPoint, offset_length, line_index)
+        add_line(line.EndPoint, last_offset, line_index)
 
         if self.constrain:
             constraint_type = 'DistanceY' if is_vertical else 'DistanceX'
-            sketch.addConstraint(Sketcher.Constraint(constraint_type, offset_line_index, config.offset))
+            sketch.addConstraint(Sketcher.Constraint(constraint_type, offset_line_index, config.longOffset))
 
         return lines
 
