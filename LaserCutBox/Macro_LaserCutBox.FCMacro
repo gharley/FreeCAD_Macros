@@ -28,10 +28,10 @@ LEFT = 3
 
 # Directional enums for drawing edges
 class Direction(Enum):
-    NS = 1
-    EW = 2
-    SN = 3
-    WE = 4
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
+    NORTH = 4
 
 
 # DotDict - easy dictionary access
@@ -248,17 +248,17 @@ class Box:
 
         box = [[sketch.addGeometry(Part.LineSegment(upper_left, upper_right), False)]]
 
-        lines = self.draw_edge_tabs(sketch, face, Direction.NS, True, actual_height, lower_right)
+        lines = self.draw_edge_tabs(sketch, face, Direction.EAST, True, actual_height, lower_right)
         box.append(lines)
 
         if self.box_type != 1:
-            lines = self.draw_edge_tabs(sketch, face, Direction.EW, True, actual_width, lower_left)
+            lines = self.draw_edge_tabs(sketch, face, Direction.SOUTH, True, actual_width, lower_left)
         else:
             lines = [sketch.addGeometry(Part.LineSegment(lower_left, lower_right), False)]
 
         box.append(lines)
 
-        lines = self.draw_edge_tabs(sketch, face, Direction.SN, False, actual_height, lower_left)
+        lines = self.draw_edge_tabs(sketch, face, Direction.WEST, False, actual_height, lower_left)
         box.append(lines)
 
         if self.constrain:
@@ -291,10 +291,10 @@ class Box:
 
         lower_left, upper_left, lower_right, upper_right = self.get_vectors(width, depth)
 
-        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WE, False, width, upper_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NS, False, depth, lower_right),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EW, False, width, lower_left),
-               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SN, False, depth, lower_left)]
+        box = [self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.NORTH, False, width, upper_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.EAST, False, depth, lower_right),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.SOUTH, False, width, lower_left),
+               self.draw_edge_tabs(sketch, Face.BOTTOM, Direction.WEST, False, depth, lower_left)]
 
         if self.constrain:
             self._constrain_sides(sketch, box)
@@ -364,7 +364,7 @@ class Box:
         return self._draw_slots(sketch, self.props.numTabsWidth, self.props.sideGap, start)
 
     def draw_edge_tabs(self, sketch, face, direction, is_inset, length, start):
-        is_vertical = direction is Direction.NS or direction is Direction.SN
+        is_vertical = direction is Direction.EAST or direction is Direction.WEST
         config = DotDict()
         config.tabWidth = self.props.tabWidth
 
@@ -393,7 +393,7 @@ class Box:
 
             config.thickness = self.props.thickness
 
-            if (is_inset and direction == Direction.NS) or (not is_inset and direction == Direction.SN):
+            if (is_inset and direction == Direction.EAST) or (not is_inset and direction == Direction.WEST):
                 config.thickness = -config.thickness
         else:
             if face is Face.SIDE or face is Face.BOTTOM:
@@ -408,34 +408,23 @@ class Box:
             else:
                 config.thickness = self.props.bottomThickness
 
-            if (is_inset and direction == Direction.WE) or (not is_inset and direction == Direction.EW):
+            if (is_inset and direction == Direction.NORTH) or (not is_inset and direction == Direction.SOUTH):
                 config.thickness = -config.thickness
 
         config.longOffset = (length - config.numTabs * config.tabWidth - config.gap * (config.numTabs - 1)) / 2.0
 
         if is_vertical:
             first_offset = last_offset = App.Vector(0, config.longOffset)
-
-            if face is Face.BOTTOM:
-                offset = App.Vector(0, config.thickness)
-                first_offset -= offset
-                last_offset += offset
-
             gap_length = App.Vector(0, config.gap)
             tab_length = App.Vector(0, config.tabWidth)
             thickness_length = App.Vector(config.thickness, 0)
         else:
-            first_offset = last_offset = App.Vector(config.longOffset, 0)
-
-            offset = App.Vector(config.thickness, 0)
-            first_offset = App.Vector(config.longOffset, 0) + offset
-            last_offset = App.Vector(config.longOffset, 0) - offset
-            # if direction is Direction.EW:
-            #     first_offset -= offset
-            #     last_offset += offset
-            # else:
-            #     first_offset += offset
-            #     last_offset -= offset
+            if face is Face.BOTTOM:
+                first_offset = last_offset = App.Vector(config.longOffset, 0)
+            else:
+                offset = App.Vector(config.thickness / 2, 0)
+                first_offset = App.Vector(config.longOffset, 0) - offset
+                last_offset = App.Vector(config.longOffset, 0) + offset
 
             gap_length = App.Vector(config.gap, 0)
             tab_length = App.Vector(config.tabWidth, 0)
