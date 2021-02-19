@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>429</width>
-    <height>467</height>
+    <width>413</width>
+    <height>382</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <widget class="QDialogButtonBox" name="buttonBox">
    <property name="geometry">
     <rect>
-     <x>320</x>
+     <x>300</x>
      <y>10</y>
      <width>101</width>
      <height>61</height>
@@ -38,7 +38,7 @@
      <x>10</x>
      <y>10</y>
      <width>281</width>
-     <height>444</height>
+     <height>361</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -59,6 +59,9 @@
       </property>
       <property name="text">
        <string>Box Dimensions</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
@@ -262,110 +265,13 @@
       <property name="text">
        <string>Tab Specifications</string>
       </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
      </widget>
     </item>
     <item>
-     <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0,0,0,0">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Box type:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>tabTypes</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="label_10">
-        <property name="text">
-         <string>Tab width:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>tabWidth</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="0">
-       <widget class="QLabel" name="label_12">
-        <property name="text">
-         <string>Horizontal offset:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>offsetH</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="10" column="0">
-       <widget class="QLabel" name="label_11">
-        <property name="text">
-         <string>Vertical offset:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>offsetV</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QLineEdit" name="tabWidth">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the width of tabs and slots.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>6</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="10" column="1">
-       <widget class="QLineEdit" name="offsetV">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies how far edge tabs are placed from the top and bottom.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>6</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <widget class="QLineEdit" name="offsetH">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies how far side tabs and slots are placed from the edges.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>6</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
+     <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0,0,0">
       <item row="1" column="1">
        <widget class="QComboBox" name="tabTypes">
         <property name="toolTip">
@@ -391,57 +297,7 @@
         </item>
        </widget>
       </item>
-      <item row="6" column="2">
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>60</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QLabel" name="label_14">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>12</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="statusTip">
-       <string>skip</string>
-      </property>
-      <property name="text">
-       <string>Can't Be Changed in Spreadsheet</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <layout class="QGridLayout" name="gridLayout_3" columnminimumwidth="100,0,0">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>Side tabs:</string>
-        </property>
-        <property name="scaledContents">
-         <bool>false</bool>
-        </property>
-        <property name="buddy">
-         <cstring>numTabsWidth</cstring>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>End tabs:</string>
@@ -454,7 +310,23 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="6" column="1">
+       <widget class="QLineEdit" name="tabWidth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Specifies the width of tabs and slots.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>6</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
        <widget class="QLabel" name="label_13">
         <property name="text">
          <string>Height tabs:</string>
@@ -467,23 +339,20 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="numTabsDepth">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the depth (short side) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_10">
         <property name="text">
-         <string>3</string>
+         <string>Tab width:</string>
         </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        <property name="scaledContents">
+         <bool>false</bool>
         </property>
-        <property name="placeholderText">
-         <string/>
+        <property name="buddy">
+         <cstring>tabWidth</cstring>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="9" column="1">
        <widget class="QLineEdit" name="numTabsHeight">
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the height (edges) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -499,7 +368,20 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="6" column="2">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>60</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="7" column="1">
        <widget class="QLineEdit" name="numTabsWidth">
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the width (long side) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -515,18 +397,47 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <spacer name="horizontalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Box type:</string>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>60</width>
-          <height>20</height>
-         </size>
+        <property name="scaledContents">
+         <bool>false</bool>
         </property>
-       </spacer>
+        <property name="buddy">
+         <cstring>tabTypes</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>Side tabs:</string>
+        </property>
+        <property name="scaledContents">
+         <bool>false</bool>
+        </property>
+        <property name="buddy">
+         <cstring>numTabsWidth</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QLineEdit" name="numTabsDepth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of tabs to place on the depth (short side) of the box.  &lt;span style=&quot; font-weight:600;&quot;&gt;DON'T&lt;/span&gt; change these after generating the sketches. (or go ahead and see why)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>3</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -535,8 +446,8 @@
   <widget class="QLabel" name="image">
    <property name="geometry">
     <rect>
-     <x>320</x>
-     <y>200</y>
+     <x>310</x>
+     <y>220</y>
      <width>90</width>
      <height>147</height>
     </rect>
@@ -548,8 +459,8 @@
   <widget class="QWidget" name="verticalLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>330</x>
-     <y>100</y>
+     <x>310</x>
+     <y>80</y>
      <width>91</width>
      <height>80</height>
     </rect>
@@ -577,7 +488,7 @@
        <string>Box End</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -590,7 +501,7 @@
        <string>Box Bottom</string>
       </property>
       <property name="checked">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -606,8 +517,6 @@
   <tabstop>lidThickness</tabstop>
   <tabstop>tabTypes</tabstop>
   <tabstop>tabWidth</tabstop>
-  <tabstop>offsetH</tabstop>
-  <tabstop>offsetV</tabstop>
   <tabstop>numTabsWidth</tabstop>
   <tabstop>numTabsDepth</tabstop>
   <tabstop>numTabsHeight</tabstop>

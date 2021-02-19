@@ -7,7 +7,7 @@ __Comment__ = "This macro creates a sketch of a living hinge box which can then 
 
 from enum import Enum
 from typing import Optional
-from math import radians, sqrt, acos, pi, ceil, floor
+from math import pi
 
 from PySide import QtCore, QtGui, QtSvg
 from FreeCAD import Gui
@@ -29,6 +29,13 @@ TOP = 0
 RIGHT = 1
 BOTTOM = 2
 LEFT = 3
+
+
+# Box type enums
+class BoxType(Enum):
+    All = 0
+    SLOTS = 1
+    TABS = 2
 
 
 # Directional enums for drawing edges
@@ -210,7 +217,7 @@ class Box:
 
         self.props = DotDict()
         self.constrain = False
-        self.box_type = 0
+        self.box_type = BoxType.All
 
         self._init_dialog()
         self.dialog.show()
@@ -222,9 +229,9 @@ class Box:
             self.widget = QtSvg.QSvgWidget(self.dialog)
             self.widget.setGeometry(self.image.geometry())
 
-        if box_type == 0:
+        if box_type == BoxType.All:
             self.widget.renderer().load(self.macro_dir + 'end_all.svg')
-        elif box_type == 1:
+        elif box_type == BoxType.SLOTS:
             self.widget.renderer().load(self.macro_dir + 'end_slots.svg')
         else:
             self.widget.renderer().load(self.macro_dir + 'end_edge.svg')
@@ -294,9 +301,9 @@ class Box:
         bottom_thickness = props.bottomThickness
         lid_thickness = props.lidThickness
 
-        if self.box_type == 0:
+        if self.box_type == BoxType.All:
             actual_height = height + lid_thickness + bottom_thickness * 2.0
-        elif self.box_type == 1:
+        elif self.box_type == BoxType.SLOTS:
             actual_height = height + lid_thickness + bottom_thickness
         else:
             actual_height = height + bottom_thickness
@@ -304,7 +311,7 @@ class Box:
         def draw_lines(top_start, bottom_start, length, num_tabs=1):
             line1 = sketch.addGeometry(Part.LineSegment(top_start, top_start + length), False)
 
-            if self.box_type == 1:
+            if self.box_type == BoxType.SLOTS:
                 line2 = [sketch.addGeometry(Part.LineSegment(bottom_start, bottom_start + length), False)]
             else:
                 line2 = self.draw_edge_tabs(sketch, num_tabs, length.x, Direction.WE, False, bottom_start)
@@ -314,7 +321,7 @@ class Box:
                 sketch.addConstraint(Sketcher.Constraint('Horizontal', line2[0]))
                 sketch.addConstraint(Sketcher.Constraint('DistanceX', line1, length.x))
 
-                if self.box_type == 2:
+                if self.box_type == BoxType.SLOTS:
                     sketch.addConstraint(Sketcher.Constraint('Equal', line1, line2[0]))
 
             return line1, line2
@@ -324,8 +331,9 @@ class Box:
             if self.constrain and old_hinge is not None:
                 sketch.addConstraint(Sketcher.Constraint('Coincident', old_hinge.top_line_index, END, top_line, START))
 
-            if self.box_type != 2:
+            if self.box_type != BoxType.TABS:
                 slots = self.draw_slots(sketch, num_tabs, length.x, top_start)
+
                 if self.constrain:
                     gap = float((length.x - props.tabWidth * num_tabs) / (num_tabs + 1))
                     sketch.addConstraint(Sketcher.Constraint('DistanceX', top_line, START, slots[0][TOP], START, gap))
@@ -358,15 +366,13 @@ class Box:
         self.draw_dovetails(sketch, lower_left, upper_left)
         self.draw_dovetails(sketch, hinge_bottom + short_length / 2, hinge_top + short_length / 2.0)
 
-        if self.box_type != 2:
+        if self.box_type != BoxType.TABS:
             self.draw_slots(sketch, 1, short_length.x / 2, hinge_top)
 
         if self.constrain:
             sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.top_line_index, END, last_top, START))
             sketch.addConstraint(Sketcher.Constraint('Coincident', hinge.bottom_line_index, END, last_bottom[-1], START))
-
-        # if self.constrain:
-        #     sketch.addConstraint(Sketcher.Constraint('Symmetric', 0, START, len(sketch.Geometry) - 1, END, ORIGIN, START))
+            sketch.addConstraint(Sketcher.Constraint('Symmetric', 0, START, len(sketch.Geometry) - 1, END, ORIGIN, START))
 
         App.ActiveDocument.recompute(None, True, True)
         Gui.ActiveDocument.ActiveView.fitAll()

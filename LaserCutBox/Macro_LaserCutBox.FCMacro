@@ -26,6 +26,13 @@ BOTTOM = 2
 LEFT = 3
 
 
+# Box type enums
+class BoxType(Enum):
+    All = 0
+    SLOTS = 1
+    TABS = 2
+
+
 # Directional enums for drawing edges
 class Direction(Enum):
     EAST = 1
@@ -63,7 +70,7 @@ class Box:
         self.worksheet = None
         self.props = DotDict()
         self.constrain = False
-        self.box_type = 0
+        self.box_type = BoxType.All
 
         self._init_dialog()
 
@@ -76,9 +83,9 @@ class Box:
             self.widget = QtSvg.QSvgWidget(self.dialog)
             self.widget.setGeometry(self.image.geometry())
 
-        if box_type == 0:
+        if box_type == BoxType.All:
             self.widget.renderer().load(self.macro_dir + 'end_all.svg')
-        elif box_type == 1:
+        elif box_type == BoxType.SLOTS:
             self.widget.renderer().load(self.macro_dir + 'end_slots.svg')
         else:
             self.widget.renderer().load(self.macro_dir + 'end_edge.svg')
@@ -93,7 +100,7 @@ class Box:
         QtCore.QObject.connect(self.dialog.buttonBox, QtCore.SIGNAL('accepted()'), self.build_geometry)
         QtCore.QObject.connect(self.dialog.tabTypes, QtCore.SIGNAL('currentIndexChanged(int)'), self._update_image)
 
-    def _init_sheet(self):
+    def _init_properties(self):
         for obj in self.dialog.findChildren(QtGui.QLabel):
             buddy = obj.buddy()
             if buddy is not None:
@@ -120,95 +127,8 @@ class Box:
         self.props.endGap = float((self.props.depth - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1))
         self.props.heightGap = float((self.props.height - self.props.numTabsHeight * self.props.tabWidth) / (self.props.numTabsHeight + 1))
 
-        # self.worksheet = App.ActiveDocument.addObject('Spreadsheet::Sheet', 'Parameters')
-        # set_cell = self.worksheet.set
-        #
-        # def column_a(idx):
-        #     return 'A' + str(idx)
-        #
-        # def column_b(idx):
-        #     return 'B' + str(idx)
-        #
-        # self.worksheet.setColumnWidth('A', 150)
-        #
-        # index = 0
-        # for obj in self.dialog.findChildren(QtGui.QLabel):
-        #     index += 1
-        #     col_a = column_a(index)
-        #     col_b = column_b(index)
-        #
-        #     buddy = obj.buddy()
-        #     if buddy is not None:
-        #         buddy_name = buddy.objectName()
-        #
-        #         if isinstance(buddy, QtGui.QComboBox):
-        #             self.box_type = buddy.currentIndex()
-        #             index -= 1
-        #         else:
-        #             buddy_value = buddy.text()
-        #
-        #             if self.num_tabs.get(buddy_name) is not None:
-        #                 self.num_tabs[buddy_name] = buddy_value
-        #                 index -= 1
-        #             else:
-        #                 set_cell(col_a, obj.text())
-        #                 set_cell(col_b, buddy_value)
-        #                 self.worksheet.setAlias(col_b, buddy_name)
-        #     else:
-        #         if obj.statusTip() == 'skip':
-        #             index -= 1
-        #         else:
-        #             self.worksheet.setStyle(col_a, 'bold')
-        #             self.worksheet.setAlignment(col_a, 'center|vcenter')
-        #             self.worksheet.mergeCells(col_a + ':' + col_b)
-        #             set_cell(col_a, obj.text())
-        #
-        # App.ActiveDocument.recompute(None, True, True)
-        #
-        # if self.worksheet.bottomThickness == 0:
-        #     self.worksheet.set(self.worksheet.getCellFromAlias('bottomThickness'), str(self.worksheet.thickness))
-        #
-        # if self.worksheet.lidThickness == 0:
-        #     self.worksheet.set(self.worksheet.getCellFromAlias('lidThickness'), str(self.worksheet.thickness))
-        #
-        # col_a = column_a(index)
-        # self.worksheet.setStyle(col_a, 'bold')
-        # self.worksheet.setAlignment(col_a, 'center|vcenter')
-        # self.worksheet.mergeCells(col_a + ':' + column_b(index))
-        # set_cell(col_a, 'Calculated Values DO NOT EDIT')
-        #
-        # def set_calc(label, alias, formula):
-        #     _col_b = column_b(index)
-        #     set_cell(column_a(index), label)
-        #     set_cell(_col_b, formula)
-        #     self.worksheet.setAlias(_col_b, alias)
-        #
-        # index += 1
-        # num_tabs = int(self.num_tabs['numTabsLength'])
-        # formula = '=width - offsetH * 2 - tabWidth' if num_tabs == 1 else '=(width - offsetH * 2 - tabWidth * {0}) / ({0} - 1)'.format(num_tabs)
-        # set_calc('Side tab gap', 'sideGap', formula)
-        #
-        # index += 1
-        # num_tabs = int(self.num_tabs['numTabsDepth'])
-        # formula = '=depth - offsetH * 2 - tabWidth' if num_tabs == 1 else '=(depth - offsetH * 2 - tabWidth * {0}) / ({0} - 1)'.format(num_tabs)
-        # set_calc('End tab gap', 'endGap', formula)
-        #
-        # index += 1
-        # num_tabs = int(self.num_tabs['numTabsHeight'])
-        # formula = '=({0}) - offsetV * 2 - tabWidth' if num_tabs == 1 else '=(({0}) - offsetV * 2 - tabWidth * {1}) / ({1} - 1)'.format('{0}',
-        #                                                                                                                                num_tabs)
-        #
-        # if self.box_type == 0:
-        #     set_calc('Height tab gap', 'heightGap', formula.format('height + lidThickness + bottomThickness * 2'))
-        # elif self.box_type == 1:
-        #     set_calc('Height tab gap', 'heightGap', formula.format('height + lidThickness + bottomThickness'))
-        # else:
-        #     set_calc('Height tab gap', 'heightGap', formula.format('height + bottomThickness'))
-        #
-        # App.ActiveDocument.recompute(None, True, True)
-
     def build_geometry(self):
-        self._init_sheet()
+        self._init_properties()
 
         if self.dialog.chkSide.isChecked():
             self.build_long_side()
@@ -237,9 +157,9 @@ class Box:
         bottom_thickness = self.props.bottomThickness
         lid_thickness = self.props.lidThickness
 
-        if self.box_type == 0:
+        if self.box_type == BoxType.All:
             actual_height = height + lid_thickness + bottom_thickness * 2
-        elif self.box_type == 1:
+        elif self.box_type == BoxType.SLOTS:
             actual_height = height + lid_thickness + bottom_thickness
         else:
             actual_height = height + bottom_thickness
@@ -251,7 +171,7 @@ class Box:
         lines = self.draw_edge_tabs(sketch, face, Direction.EAST, True, actual_height, lower_right)
         box.append(lines)
 
-        if self.box_type != 1:
+        if self.box_type != BoxType.SLOTS:
             lines = self.draw_edge_tabs(sketch, face, Direction.SOUTH, True, actual_width, lower_left)
         else:
             lines = [sketch.addGeometry(Part.LineSegment(lower_left, lower_right), False)]
@@ -268,12 +188,12 @@ class Box:
             sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], actual_width))
             sketch.addConstraint(Sketcher.Constraint('DistanceY', box[LEFT][0], START, box[LEFT][-1], END, -actual_height))
 
-            if self.box_type == 1:
+            if self.box_type == BoxType.SLOTS:
                 sketch.addConstraint(Sketcher.Constraint('DistanceY', box[RIGHT][0], START, box[RIGHT][-1], END, -actual_height))
 
             sketch.addConstraint(Sketcher.Constraint('Symmetric', box[TOP][0], START, box[RIGHT][-1], END, ORIGIN, START))
 
-        if self.box_type != 2:
+        if self.box_type != BoxType.TABS:
             tab = tab_func(sketch, actual_height)
 
             if self.constrain:
