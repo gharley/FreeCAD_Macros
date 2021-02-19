@@ -7,7 +7,7 @@ with any material thickness.
 
 The **LaserCutBox** macro creates a basic "tabbed" box with optional slots to allow for an inset lid. Simply 
 enter the inside dimension of the box, the material thicknesses, tab width and number of tabs for each side. 
-The macro will then generate a sketch for each side selected that can then be exported to a .DXF file for 
+The macro will then generate a sketch, for each side selected, that can then be exported to a .DXF file for 
 lasercutting.
 
 The **LivingHingeBox** macro is a bit more complicated as cutting the hinge itself is complicated.  I originally
@@ -32,7 +32,7 @@ when assembling the box as the hinges can snap unexpectedly if over stressed. Th
 once the box is glued together. (HINT: for thicker materials I've heard, but haven't tried, that 
 steaming the wood can help.)
 ### Installation
-Just download all the files and copy them to your FreeCAD macro folder. (take the FCMacro and ui files
+Just download all the files in the sub-folders and copy them to your FreeCAD macro folder. (take the files
 out of their sub-folders)
 ### Have Fun!!
 Once you have exported the files you can import them into an app like LightBurn or RDWorks and then
