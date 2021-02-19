@@ -15,9 +15,9 @@ planned to somehow calculate the number and size of each segment based on materi
 unable to find an algorithm that worked reliably.  Through trial and error I came up with some suggested 
 defaults but YMMV so you might have to do your own T&E.  Here's what has worked for me:
 
-3 mm (1/8") material - 6 to 8 3 mm segments</br>
-5 mm (3/16") material - 7 or 8 3 mm segments</br>
-6.5 mm (1/4") material - 7 to 9 4 mm segments
+- 3 mm (1/8") material - 6 to 8 3 mm segments</br>
+- 5 mm (3/16") material - 7 or 8 3 mm segments</br>
+- 6.5 mm (1/4") material - 7 to 9 4 mm segments
 
 Feel free to experiment but, I would not recommend a segment size smaller than 3 mm or greater 
 than 4 mm.</br></br>
