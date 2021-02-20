@@ -93,7 +93,7 @@ class Box:
         self.widget.show()
 
     def _init_dialog(self):
-        self.dialog = Gui.PySideUic.loadUi('{0}Macro_LaserCutBox.ui'.format(self.macro_dir))
+        self.dialog = Gui.PySideUic.loadUi('{0}FCLaserCutBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Laser cut box")
         self.image = self.dialog.findChild(QtGui.QLabel, 'image')
 
@@ -197,7 +197,8 @@ class Box:
             tab = tab_func(sketch, actual_height)
 
             if self.constrain:
-                sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, tab[TOP][0], START, self.props.sideGap if face is Face.SIDE else self.props.endGap))
+                sketch.addConstraint(Sketcher.Constraint('DistanceX', box[TOP][0], START, tab[TOP][0], START,
+                                                         self.props.sideGap if face is Face.SIDE else self.props.endGap))
                 sketch.addConstraint(Sketcher.Constraint('DistanceY', tab[TOP][0], START, box[TOP][0], START, lid_thickness))
 
         App.ActiveDocument.recompute(None, True, True)

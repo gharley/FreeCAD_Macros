@@ -17,7 +17,6 @@ import Part, PartDesign, Sketcher
 
 App = FreeCAD
 
-
 # Indexes for geoid
 START = 1
 END = 2
@@ -81,16 +80,20 @@ class Hinge:
         self._inner_lines = []
 
     @property
-    def inner_lines(self): return self._inner_lines
+    def inner_lines(self):
+        return self._inner_lines
 
     @property
-    def outer_lines(self): return self._outer_lines
+    def outer_lines(self):
+        return self._outer_lines
 
     @property
-    def start_point(self): return self._start_point
+    def start_point(self):
+        return self._start_point
 
     @start_point.setter
-    def start_point(self, value): self._start_point = value
+    def start_point(self, value):
+        self._start_point = value
 
     def add_line(self, start_point, end_offset, lines, connection=None):
         end_point = start_point + end_offset
@@ -165,7 +168,8 @@ class Hinge:
             self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.bottom_line_index))
             self.sketch.addConstraint(Sketcher.Constraint('DistanceX', self.bottom_line_index, hinge_length.x))
 
-        self.top_line_index = self.sketch.addGeometry(Part.LineSegment(self.start_point + hinge_height, self.start_point + hinge_height + hinge_length), False)
+        self.top_line_index = self.sketch.addGeometry(
+            Part.LineSegment(self.start_point + hinge_height, self.start_point + hinge_height + hinge_length), False)
         if self.constrain:
             self.sketch.addConstraint(Sketcher.Constraint('Horizontal', self.top_line_index))
             self.sketch.addConstraint(Sketcher.Constraint('Equal', self.bottom_line_index, self.top_line_index))
@@ -201,7 +205,8 @@ class Hinge:
         return Hinge.radius * 2.0 * pi / 4.0
 
     @staticmethod
-    def length(): return float(Hinge.segment_width * Hinge.num_segments)
+    def length():
+        return float(Hinge.segment_width * Hinge.num_segments)
 
 
 class Box:
@@ -239,7 +244,7 @@ class Box:
         self.widget.show()
 
     def _init_dialog(self):
-        self.dialog = Gui.PySideUic.loadUi('{0}Macro_LivingHingeBox.ui'.format(self.macro_dir))
+        self.dialog = Gui.PySideUic.loadUi('{0}FCLivingHingeBox.ui'.format(self.macro_dir))
         self.dialog.setWindowTitle("Living hinge box")
         self.dialog.chkConstrain.setVisible(False)
         self.image = self.dialog.findChild(QtGui.QLabel, 'image')
@@ -270,8 +275,10 @@ class Box:
         if self.props.numTabsDepth == 0:
             self.props.numTabsDepth = self.props.numTabsWidth
 
-        self.props.gapH = float((self.props.width - self.props.radius * 2.0 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1))
-        self.props.gapV = float((self.props.depth - self.props.radius * 2.0 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1))
+        self.props.gapH = float(
+            (self.props.width - self.props.radius * 2.0 - self.props.numTabsWidth * self.props.tabWidth) / (self.props.numTabsWidth + 1))
+        self.props.gapV = float(
+            (self.props.depth - self.props.radius * 2.0 - self.props.numTabsDepth * self.props.tabWidth) / (self.props.numTabsDepth + 1))
 
         Hinge.radius = self.props.radius
         Hinge.thickness = self.props.thickness
