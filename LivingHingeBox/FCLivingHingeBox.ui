@@ -445,6 +445,9 @@
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="4" column="1">
        <widget class="QLineEdit" name="segmentWidth">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The width of each segment in a hinge. 3mm or 4mm segments seem to work well for materials from 3mm to 7mm thick. This may also vary with material type.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>3</string>
         </property>
@@ -456,7 +459,7 @@
       <item row="0" column="1">
        <widget class="QLineEdit" name="radius">
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The radius of the corners of the box, 15 is a good starting value.  Smaller values have not been tested and could be problematic especially in thicker materials.  Larger values will result on mor hinge segments.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The radius of the corners of the box, 15 is a good starting value. Smaller values have not been tested and could be problematic especially in thicker materials.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>15</string>
@@ -478,6 +481,9 @@
       </item>
       <item row="3" column="1">
        <widget class="QLineEdit" name="numSegments">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of segments in a hinge. 6 to 9 segments seem to work well for materials from 3mm to 7mm thick. This may also vary with material type.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>6</string>
         </property>
